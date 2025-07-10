@@ -4,6 +4,9 @@ public static class HexapodKinematics
 {
     public static Vector3 InverseKinematics(Vector3 basePos, Vector3 target, float L0, float L1, float L2)
     {
+        // L0,L1,L2 son las longitudes de los segmentos de la cadena cinemática
+        // basePos es la posición de la base del hexápodo
+        // target es la posición del objetivo
         float dx = target.x - basePos.x;
         float dy = target.y - basePos.y;
         float dz = target.z - basePos.z;

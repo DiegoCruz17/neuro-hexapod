@@ -5,6 +5,7 @@ public class HexapodTest : MonoBehaviour
 {
     void Start()
     {
+        //deberian ser dinamicos
         float d = 40f, al = 60f, n = 20f, w = 1f, rs = 0f, ra = 0f, c = 0f, k = 0f;
         float L0 = 86f, L1 = 74.28f, L2 = 140.85f;
 
