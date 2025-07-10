@@ -1,1 +1,0 @@
-controller_joint_names: ['', 'CoxisRU_joint', 'FemurRU_joint', 'TibiaRU_joint', 'CoxisRM_joint', 'FemurRM_joint', 'TibiaRM_joint', 'CoxisRB_joint', 'FemurRB_joint', 'TibiaRB_joint', 'CoxisLU_joint', 'FemurLU_joint', 'TibiaLU_joint', 'CoxisLM_joint', 'FemurLM_link', 'TibiaLM_joint', 'Cola_joint', 'camera_joint', 'CoxisLB_joint', 'FemurLB_joint', 'TibiaLB_joint', ]
