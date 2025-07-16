@@ -17,7 +17,8 @@ public class AntaresController : MonoBehaviour
     public float L1 = 74.28f;
     public float L2 = 140.85f;
 
-    public float d = 40f, al = 60f, n = 20f, w = 1f, rs = 0f, ra = 0f, c = 0f, k = 0f;
+    public float d = 40f, al = 60f, n = 20f, w = 1f, rs = 0f, ra = 0f, c = 0f;
+    public float k = 0f;
 
     private Vector3[] mountPoints;
 
@@ -68,10 +69,10 @@ public class AntaresController : MonoBehaviour
 
         for (int i = 0; i < 6; i++)
         {
-            var angleModifier = 1f;
+            var angleModifier = -1f;
             if (i < 3)
             {
-                angleModifier = -1f;
+                angleModifier = 1f;
             }
             Vector3 basePos = mountPoints[i];
             Vector3 target = targets[i];
@@ -97,6 +98,11 @@ public class AntaresController : MonoBehaviour
             tibiaDrive.target = angles.z * angleModifier;
             tibiaBody.xDrive = tibiaDrive;
             // Debug.Log("Tibia " + i + " target: " + angles.z * angleModifier);
+        }
+        k+=60*Mathf.PI/1000;
+        if (k>60*Mathf.PI)
+        {
+            k = 0;
         }
     }
 }
