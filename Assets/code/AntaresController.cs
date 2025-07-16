@@ -99,10 +99,7 @@ public class AntaresController : MonoBehaviour
             tibiaBody.xDrive = tibiaDrive;
             // Debug.Log("Tibia " + i + " target: " + angles.z * angleModifier);
         }
-        k+=60*Mathf.PI/1000;
-        if (k>60*Mathf.PI)
-        {
-            k = 0;
-        }
+        k+=60*Mathf.PI/1000*Time.deltaTime;
+        if (k>60*Mathf.PI) k = 0;
     }
 }
