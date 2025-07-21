@@ -2,12 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-//hola
-
 public class AntaresController : MonoBehaviour
 {
     public bool disableGravity = false;
-    
+
     public Transform Cooxa1;
     public Transform Cooxa2;
     public Transform Cooxa3;
@@ -32,19 +30,20 @@ public class AntaresController : MonoBehaviour
     {
         if (disableGravity)
         {
-            // Disable gravity on this object
             var rootBody = GetComponent<ArticulationBody>();
             if (rootBody != null)
                 rootBody.useGravity = false;
 
-            // Disable gravity on all children and grandchildren
             foreach (var body in GetComponentsInChildren<ArticulationBody>())
             {
                 body.useGravity = false;
             }
         }
 
-        // Initialize mount points with current transform position
+        // Reordenar coxas para hacer coincidir el orden MATLAB → Unity
+        coxas = new Transform[] { Cooxa4, Cooxa5, Cooxa6, Cooxa1, Cooxa2, Cooxa3 };
+
+        // Coordenadas de montaje en el cuerpo
         mountPoints = new Vector3[]
         {
             new Vector3(62.77f,  90.45f, transform.position.y),
@@ -55,53 +54,98 @@ public class AntaresController : MonoBehaviour
             new Vector3(-62.77f, -90.45f, transform.position.y)
         };
 
-        coxas = new Transform[] { Cooxa1, Cooxa2, Cooxa3, Cooxa4, Cooxa5, Cooxa6 };
         femurs = new Transform[6];
         tibias = new Transform[6];
         for (int i = 0; i < 6; i++)
         {
-            femurs[i] = coxas[i].GetChild(0); //Arreglar esto desde las jerarquias
+            femurs[i] = coxas[i].GetChild(0);
             tibias[i] = femurs[i].GetChild(0);
         }
     }
+
     void Update()
     {
-
         var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k);
 
         for (int i = 0; i < 6; i++)
         {
-            var angleModifier = -1f;
-            if (i < 3)
-            {
-                angleModifier = 1f;
-            }
             Vector3 basePos = mountPoints[i];
             Vector3 target = targets[i];
+            if (i == 0)
+            {
+                Debug.Log("Target pata 1: " + target);
+            }
             Vector3 angles = HexapodKinematics.InverseKinematics(basePos, target, L0, L1, L2);
-            Debug.Log("Angles: " + angles);
 
-            //cooxa
+            float theta1 = angles.x;
+            float theta2 = angles.y;
+            float theta3 = angles.z;
+
+            
+            if (i == 0|| i == 1|| i == 2)
+            {
+                theta1 = theta1;
+            }
+            if (i == 3)
+            {
+                theta1 = 180-theta1;
+            }
+
+            if (i == 4)
+            {
+                if (theta1>0)
+                {
+                    theta1= 180-theta1;
+                }
+                if (theta1<0)
+                {
+                    theta1= -180-theta1;
+                }
+            }
+
+            if (i == 5)
+            {
+                theta1 = -180-theta1;
+            }
+
+            // Imprimir en consola
+            int pata = i + 1;
+            //if (i == 0)
+            //{
+            Debug.Log("Pata " + pata + " → Coxa: " + theta1.ToString("F2") +
+                      ", Fémur: " + theta2.ToString("F2") +
+                      ", Tibia: " + theta3.ToString("F2"));
+            //}   
+            // Aplicar a articulaciones
             var coxaBody = coxas[i].GetComponent<ArticulationBody>();
             var coxaDrive = coxaBody.xDrive;
-            coxaDrive.target = angles.x * angleModifier;
+            coxaDrive.target = theta1;
             coxaBody.xDrive = coxaDrive;
-            // Debug.Log("Coxa " + i + " target: " + angles.x * angleModifier);
 
-            //femur
             var femurBody = femurs[i].GetComponent<ArticulationBody>();
             var femurDrive = femurBody.xDrive;
-            femurDrive.target = angles.y * angleModifier;
+            femurDrive.target = theta2;
             femurBody.xDrive = femurDrive;
-            // Debug.Log("Femur " + i + " target: " + angles.y * angleModifier);
-            //tibia 
+
             var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
             var tibiaDrive = tibiaBody.xDrive;
-            tibiaDrive.target = angles.z * angleModifier;
+            tibiaDrive.target = theta3;
             tibiaBody.xDrive = tibiaDrive;
-            // Debug.Log("Tibia " + i + " target: " + angles.z * angleModifier);
         }
-        k+=60*Mathf.PI/1000*Time.deltaTime;
-        if (k>60*Mathf.PI) k = 0;
+
+        k += 60 * Mathf.PI / 1000 * Time.deltaTime;
+        if (k > 60 * Mathf.PI) k = 0;
+
     }
+    private ArticulationDrive ConfigureDrive(float target, float stiffness = 1000f, float damping = 500f, float forceLimit = 100f)
+    {
+        ArticulationDrive drive = new ArticulationDrive();
+        drive.stiffness = stiffness;
+        drive.damping = damping;
+        drive.forceLimit = forceLimit;
+        drive.target = target;
+        drive.targetVelocity = 0f; // No se usa cuando stiffness > 0
+        return drive;
+    }
+
 }
