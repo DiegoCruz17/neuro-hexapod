@@ -5,7 +5,7 @@ using UnityEngine;
 public class AntaresController : MonoBehaviour
 {
     public bool disableGravity = false;
-    
+
     public Transform Cooxa1;
     public Transform Cooxa2;
     public Transform Cooxa3;
@@ -37,19 +37,20 @@ public class AntaresController : MonoBehaviour
     {
         if (disableGravity)
         {
-            // Disable gravity on this object
             var rootBody = GetComponent<ArticulationBody>();
             if (rootBody != null)
                 rootBody.useGravity = false;
 
-            // Disable gravity on all children and grandchildren
             foreach (var body in GetComponentsInChildren<ArticulationBody>())
             {
                 body.useGravity = false;
             }
         }
 
-        // Initialize mount points with current transform position
+        // Reordenar coxas para hacer coincidir el orden MATLAB → Unity
+        coxas = new Transform[] { Cooxa4, Cooxa5, Cooxa6, Cooxa1, Cooxa2, Cooxa3 };
+
+        // Coordenadas de montaje en el cuerpo
         mountPoints = new Vector3[]
         {
             new Vector3(62.77f,  90.45f, transform.position.y),
@@ -60,16 +61,16 @@ public class AntaresController : MonoBehaviour
             new Vector3(-62.77f, -90.45f, transform.position.y)
         };
 
-        coxas = new Transform[] { Cooxa1, Cooxa2, Cooxa3, Cooxa4, Cooxa5, Cooxa6 };
         femurs = new Transform[6];
         tibias = new Transform[6];
         for (int i = 0; i < 6; i++)
         {
-            femurs[i] = coxas[i].GetChild(0); //Arreglar esto desde las jerarquias
+            femurs[i] = coxas[i].GetChild(0);
             tibias[i] = femurs[i].GetChild(0);
         }
         sensors = GetComponent<Sensors>();
     }
+
     void Update()
     {
         if (controlMode == ControlMode.InverseKinematics)
@@ -154,4 +155,15 @@ public class AntaresController : MonoBehaviour
             }
         }
     }
+    private ArticulationDrive ConfigureDrive(float target, float stiffness = 1000f, float damping = 500f, float forceLimit = 100f)
+    {
+        ArticulationDrive drive = new ArticulationDrive();
+        drive.stiffness = stiffness;
+        drive.damping = damping;
+        drive.forceLimit = forceLimit;
+        drive.target = target;
+        drive.targetVelocity = 0f; // No se usa cuando stiffness > 0
+        return drive;
+    }
+
 }
