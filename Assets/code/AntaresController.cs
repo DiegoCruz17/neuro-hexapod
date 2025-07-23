@@ -13,7 +13,7 @@ public class AntaresController : MonoBehaviour
     public Transform Cooxa5;
     public Transform Cooxa6;
 
-    public float L0 = 86f;
+    public float L0 = 86.0f;
     public float L1 = 74.28f;
     public float L2 = 140.85f;
 
@@ -51,6 +51,7 @@ public class AntaresController : MonoBehaviour
         coxas = new Transform[] { Cooxa4, Cooxa5, Cooxa6, Cooxa1, Cooxa2, Cooxa3 };
 
         // Coordenadas de montaje en el cuerpo
+        /*
         mountPoints = new Vector3[]
         {
             new Vector3(62.77f,  90.45f, transform.position.y),
@@ -59,6 +60,16 @@ public class AntaresController : MonoBehaviour
             new Vector3(-65.89f, 88.21f, transform.position.y),
             new Vector3(-86f,    0f,     transform.position.y),
             new Vector3(-62.77f, -90.45f, transform.position.y)
+        };*/
+
+        mountPoints = new Vector3[]
+        {
+            new Vector3(62.77f,  90.45f, 123.83f),
+            new Vector3(86f,     0f,     123.83f),
+            new Vector3(65.89f, -88.21f, 123.83f),
+            new Vector3(-65.89f, 88.21f, 123.83f),
+            new Vector3(-86f,    0f,     123.83f),
+            new Vector3(-62.77f, -90.45f, 123.83f)
         };
 
         femurs = new Transform[6];
@@ -78,11 +89,15 @@ public class AntaresController : MonoBehaviour
             var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k);
             for (int i = 0; i < 6; i++)
             {
-                var angleModifier = -1f;
+                var angleModifier = 1f;
                 if (i < 3) angleModifier = 1f;
                 Vector3 basePos = mountPoints[i];
                 Vector3 target = targets[i];
+                Debug.Log("Target[" + i + "]: " + target);
                 Vector3 angles = HexapodKinematics.InverseKinematics(basePos, target, L0, L1, L2);
+
+                Debug.Log($"Leg {i} Angles -> Coxa: {angles.x:F2}, Femur: {angles.y:F2}, Tibia: {angles.z:F2}");
+
                 //cooxa
                 var coxaBody = coxas[i].GetComponent<ArticulationBody>();
                 var coxaDrive = coxaBody.xDrive;
@@ -99,7 +114,8 @@ public class AntaresController : MonoBehaviour
                 tibiaDrive.target = angles.z * angleModifier;
                 tibiaBody.xDrive = tibiaDrive;
             }
-            k+=60*Mathf.PI/1000*Time.deltaTime;
+            k = 0;
+            //k +=60*Mathf.PI/1000*Time.deltaTime;
             if (k>60*Mathf.PI) k = 0;
         }
         else if (controlMode == ControlMode.NeuralCircuit)

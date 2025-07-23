@@ -7,7 +7,7 @@ public static class Locomotion
                               ref float LP, ref float L2P, ref float L3P,
                               float T, float CPGXY, float CPGZ, float dt)
     {
-        float L1 = 86, L2 = 74.28f, L3 = 140.85f;
+        float L1 = 86f, L2 = 74.28f, L3 = 140.85f;
 
         for (int i = 0; i < 50; i++)
         {
