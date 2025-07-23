@@ -5,19 +5,19 @@ public static class HexapodTrajectory
 {
     public static List<Vector3> CalcularTrayectoria(float d, float al, float n, float w, float rs, float ra, float c, float k)
     {
-        float hb = -2f;
+        float hb = -124f;
         Vector3[] P = new Vector3[]
         {
-            new Vector3(-2f, -1.7f, hb),
-            new Vector3(-2.5f,   0,  hb),
-            new Vector3(-2f,  1.7f, hb),
-            new Vector3( 2f, -1.7f, hb),
-            new Vector3( 2.5f,   0,  hb),
-            new Vector3( 2f,  1.7f, hb)
+            new Vector3(-130f, -170f, hb),
+            new Vector3(-170f,   0,  hb),
+            new Vector3(-130f,  170f, hb),
+            new Vector3( 130f, -170f, hb),
+            new Vector3( 170f,   0,  hb),
+            new Vector3( 130f,  170f, hb)
         };
         for (int i = 0; i < P.Length; i++)
         {
-            P[i] *= 0.1f;
+            P[i] *= 1f;
         }
 
         float fp(float kx) => d * Mathf.Sin(kx) + n * Mathf.Sin(kx) * Mathf.Pow(Mathf.Cos(kx), 2);
