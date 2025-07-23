@@ -90,7 +90,7 @@ public class AntaresController : MonoBehaviour
             for (int i = 0; i < 6; i++)
             {
                 var angleModifier = 1f;
-                if (i < 3) angleModifier = 1f;
+                if (i < 3) angleModifier = -1f;
                 Vector3 basePos = mountPoints[i];
                 Vector3 target = targets[i];
                 Debug.Log("Target[" + i + "]: " + target);
@@ -101,6 +101,10 @@ public class AntaresController : MonoBehaviour
                 //cooxa
                 var coxaBody = coxas[i].GetComponent<ArticulationBody>();
                 var coxaDrive = coxaBody.xDrive;
+                if (i >= 3)
+                {
+                    angles.x = 180-(((angles.x)+720)%360);
+                }
                 coxaDrive.target = angles.x * angleModifier;
                 coxaBody.xDrive = coxaDrive;
                 //femur
@@ -114,8 +118,8 @@ public class AntaresController : MonoBehaviour
                 tibiaDrive.target = angles.z * angleModifier;
                 tibiaBody.xDrive = tibiaDrive;
             }
-            k = 0;
-            //k +=60*Mathf.PI/1000*Time.deltaTime;
+            //k = 0;
+            k +=60*Mathf.PI/100*Time.deltaTime;
             if (k>60*Mathf.PI) k = 0;
         }
         else if (controlMode == ControlMode.NeuralCircuit)
