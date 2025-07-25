@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 public static class HexapodTrajectory
 {
-    public static List<Vector3> CalcularTrayectoria(float d, float al, float n, float w, float rs, float ra, float c, float k)
+    public static List<Vector3> CalcularTrayectoria(float d, float al, float n, float w, float rs, float ra, float c, float k, float hb, float wb)
     {
-        float hb = -124f;
+
         Vector3[] P = new Vector3[]
         {
-            new Vector3(-130f, -170f, hb),
-            new Vector3(-170f,   0,  hb),
-            new Vector3(-130f,  170f, hb),
-            new Vector3( 130f, -170f, hb),
-            new Vector3( 170f,   0,  hb),
-            new Vector3( 130f,  170f, hb)
+            new Vector3(-130f -(wb+hb), -170f, hb),
+            new Vector3(-170f -(wb+hb),   0,  hb),
+            new Vector3(-130f -(wb+hb),  170f, hb),
+            new Vector3( 130f +(wb+hb), -170f, hb),
+            new Vector3( 170f +(wb+hb),   0,  hb),
+            new Vector3( 130f +(wb+hb),  170f, hb)
         };
         for (int i = 0; i < P.Length; i++)
         {
