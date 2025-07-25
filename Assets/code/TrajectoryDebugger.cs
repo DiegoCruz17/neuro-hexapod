@@ -35,8 +35,10 @@ public class TrajectoryDebugger : MonoBehaviour
     {
         List<Vector3> points = HexapodTrajectory.CalcularTrayectoria(
             antares.d, antares.al, antares.n, antares.w,
-            antares.rs, antares.ra, antares.c, antares.k
+            antares.rs, antares.ra, antares.c, antares.k,
+            antares.hb, antares.wb
         );
+
 
         for (int i = 0; i < 6; i++)
         {

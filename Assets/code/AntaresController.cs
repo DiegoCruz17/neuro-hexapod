@@ -20,6 +20,9 @@ public class AntaresController : MonoBehaviour
     public float d = 40f, al = 60f, n = 20f, w = 1f, rs = 0f, ra = 0f, c = 0f;
     public float k = 0f;
 
+    public float hb = -20f;
+    public float wb = 80f;
+
     private Vector3[] mountPoints;
 
     private Transform[] coxas;
@@ -86,7 +89,7 @@ public class AntaresController : MonoBehaviour
     {
         if (controlMode == ControlMode.InverseKinematics)
         {
-            var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k);
+            var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k, hb, wb);
             for (int i = 0; i < 6; i++)
             {
                 var angleModifier = 1f;
@@ -156,8 +159,8 @@ public class AntaresController : MonoBehaviour
                     Locomotion.Update(ref neuralState.Q1[i], ref neuralState.Q2[i], ref neuralState.Q3[i],
                         ref neuralState.E[i], ref neuralState.LP[i], ref neuralState.L2P[i], ref neuralState.L3P[i],
                         T, cpgXY, cpgZ, dt);
-                    var angleModifier = 1f;
-                    if (i < 3) angleModifier = -1f;
+                    var angleModifier = -1f;
+                    if (i < 3) angleModifier = 1f;
                     // Apply neural circuit joint angles
                     var coxaBody = coxas[i].GetComponent<ArticulationBody>();
                     var coxaDrive = coxaBody.xDrive;
