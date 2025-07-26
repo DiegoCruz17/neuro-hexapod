@@ -1,0 +1,54 @@
+{
+    "name": "ControlPlay",
+    "maps": [
+        {
+            "name": "Move",
+            "id": "5be7bcbb-8835-4085-93eb-98e07fd103aa",
+            "actions": [
+                {
+                    "name": "TrunLeft",
+                    "type": "Button",
+                    "id": "f3cbe2ff-bad1-43d1-b242-d2e35d449dd3",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "TurnRight",
+                    "type": "Button",
+                    "id": "ad0d3b5a-4cda-44f5-a3e4-15247b242bfa",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "506311a0-3fa6-4c03-be92-ce4e23d8e2c3",
+                    "path": "<Gamepad>/leftTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TrunLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8300f067-1177-47e7-8e12-d9a43956e73f",
+                    "path": "<Gamepad>/rightTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TurnRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
