@@ -10,7 +10,7 @@ public static class CPG
         float a = 1, b = 1;
         float tau1o = 8, tau2o = 16, tau3o = 150, tau4o = 150;
 
-        float u = 2, u2 = 2;
+        float u = 1, u2 = 1;
 
         CPGs[0] += (dt / tau1o) * (-a * CPGs[0] + 
             (Ao * Mathf.Pow(150 - Do * CPGs[1], 2)) / 
