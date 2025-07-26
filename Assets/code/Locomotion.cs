@@ -11,9 +11,9 @@ public static class Locomotion
 
         for (int i = 0; i < 50; i++)
         {
-            float Q1p = CPGXY;
-            float Q2p = (Q2 * 0.35f + 5.5f * E) * (float)Math.Tanh(Math.Pow(CPGZ, 3) / 9.0f) + CPGZ;
-            float Q3p = -Q2p - 90;
+            float Q1p = CPGXY*2;
+            float Q2p = (Q2 * 0.35f + 5.5f * E) * (float)Math.Tanh(Math.Pow(CPGZ, 3) / 9.0f) + CPGZ*0.1f;
+            float Q3p = Q2p-60;
 
             float LPp = (L1 + L2P) * Mathf.Cos(Q1 * Mathf.Deg2Rad);
             float Ep = (T - LP) * (i > 25 ? 1f : 0f);

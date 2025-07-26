@@ -11,4 +11,5 @@ public class HexapodState
 
     public float DIR1, DIR2, DIR3, DIR4;
     public float FW, BW, TL, TR, L, R, MOV;
+     public float[] RangoOPQ1_offset = new float[] { 10, 0, -10, 10, 0, -10 };
 }

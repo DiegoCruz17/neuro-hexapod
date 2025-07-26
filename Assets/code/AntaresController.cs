@@ -40,6 +40,7 @@ public class AntaresController : MonoBehaviour
     private Sensors sensors;
     private HexapodState neuralState = new HexapodState();
     public float dt = 0.01f; // Simulation timestep for neural circuit
+    public float[] RangoOPQ1_offset = new float[] { -30, 0, 30, -30, 0, 30 };
 
     void Start()
     {
@@ -133,43 +134,92 @@ public class AntaresController : MonoBehaviour
         else if (controlMode == ControlMode.NeuralCircuit)
         {
             // --- Lidar-based neural circuit stimulation ---
-            float go = 0, bk = 0, left = 0, right = 0;
-            if (sensors != null)
+            float go = 6, bk = 0,  left = 0, right = 0;
+                    /*
+                if (sensors != null)
+                {
+                    var scanData = sensors.GetScanData();
+                    int numRays = 20;
+
+                    // Sector izquierdo: del rayo 0 al 9 (0° a 162° aprox)
+                    List<int> leftSector = new List<int> { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+                    // Sector derecho: del rayo 10 al 19 (180° a 342° aprox)
+                    List<int> rightSector = new List<int> { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+
+                    // Cada detección suma 0.1 (10 rayos por sector → máx = 1.0)
+                    foreach (int i in leftSector)
+                        if (i < scanData.Count && scanData[i].hitDetected)
+                            right += 0.1f; // obstáculo a la izquierda → moverse a la derecha
+
+                    foreach (int i in rightSector)
+                        if (i < scanData.Count && scanData[i].hitDetected)
+                            left += 0.1f; // obstáculo a la derecha → moverse a la izquierda
+                }*/
+                
+            for (int j = 0; j < 50; j++)
             {
-                var scanData = sensors.GetScanData();
-                int numRays = 20;
-                float anglePerRay = 360f / numRays;
-                // Define area indices (0 = front center, increases clockwise)
-                List<int> frontRays = new List<int> { 19, 0, 1, 2 }; // -36° to +36°
-                List<int> backRays = new List<int> { 9, 10, 11, 12 }; // 144° to 216°
-                List<int> leftRays = new List<int> { 3, 4, 5, 6 };    // 72° to 144°
-                List<int> rightRays = new List<int> { 13, 14, 15, 16 }; // -144° to -72°
-                // Normalize: each hit adds 0.25 (max 1.0 if all 4 rays hit)
-                foreach (int i in frontRays) if (i < scanData.Count && scanData[i].hitDetected) bk += 0.25f;
-                foreach (int i in backRays)  if (i < scanData.Count && scanData[i].hitDetected) go += 0.25f;
-                foreach (int i in leftRays)  if (i < scanData.Count && scanData[i].hitDetected) right += 0.25f;
-                foreach (int i in rightRays) if (i < scanData.Count && scanData[i].hitDetected) left += 0.25f;
-            }
-            for (int j = 0; j < 50; j++){
                 // No spinL/spinR for now
                 Stimuli.Update(neuralState, go, bk, 0, 0, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
                 // Use CPG output to update joint angles
+
+                // You may want to tune T, cpgXY, cpgZ as in HexapodSimulation
+                    // Piernas impares: 1, 3, 5 => índices 0, 2, 4
+                    Locomotion.Update(
+                        ref neuralState.Q1[0], ref neuralState.Q2[0], ref neuralState.Q3[0],
+                        ref neuralState.E[0], ref neuralState.LP[0], ref neuralState.L2P[0], ref neuralState.L3P[0],
+                        90 + 3 * neuralState.CPGs[5] * neuralState.DIR1 * (neuralState.DIR3 - neuralState.DIR4),
+                        neuralState.DIR1 * 5 * neuralState.CPGs[5] + RangoOPQ1_offset[0],
+                        neuralState.CPGs[8], 1);
+
+                    Locomotion.Update(
+                        ref neuralState.Q1[2], ref neuralState.Q2[2], ref neuralState.Q3[2],
+                        ref neuralState.E[2], ref neuralState.LP[2], ref neuralState.L2P[2], ref neuralState.L3P[2],
+                        90 + 3 * neuralState.CPGs[5] * neuralState.DIR1 * (neuralState.DIR3 + neuralState.DIR4),
+                        neuralState.DIR1 * 5 * neuralState.CPGs[5] + RangoOPQ1_offset[2],
+                        neuralState.CPGs[8], 1);
+
+                    Locomotion.Update(
+                        ref neuralState.Q1[4], ref neuralState.Q2[4], ref neuralState.Q3[4],
+                        ref neuralState.E[4], ref neuralState.LP[4], ref neuralState.L2P[4], ref neuralState.L3P[4],
+                        90 + 3 * neuralState.CPGs[5] * neuralState.DIR1 * neuralState.DIR3,
+                        neuralState.DIR2 * 5 * neuralState.CPGs[5] + RangoOPQ1_offset[4],
+                        neuralState.CPGs[8], 1);
+
+                    // Piernas pares: 2, 4, 6 => índices 1, 3, 5
+                    Locomotion.Update(
+                        ref neuralState.Q1[1], ref neuralState.Q2[1], ref neuralState.Q3[1],
+                        ref neuralState.E[1], ref neuralState.LP[1], ref neuralState.L2P[1], ref neuralState.L3P[1],
+                        90 + 3 * neuralState.CPGs[6] * neuralState.DIR2 * neuralState.DIR3,
+                        neuralState.DIR1 * 5 * neuralState.CPGs[6] + RangoOPQ1_offset[1],
+                        neuralState.CPGs[9], 1);
+
+                    Locomotion.Update(
+                        ref neuralState.Q1[3], ref neuralState.Q2[3], ref neuralState.Q3[3],
+                        ref neuralState.E[3], ref neuralState.LP[3], ref neuralState.L2P[3], ref neuralState.L3P[3],
+                        90 + 3 * neuralState.CPGs[6] * neuralState.DIR2 * (neuralState.DIR3 + neuralState.DIR4),
+                        neuralState.DIR2 * 5 * neuralState.CPGs[6] + RangoOPQ1_offset[3],
+                        neuralState.CPGs[9], 1);
+
+                    Locomotion.Update(
+                        ref neuralState.Q1[5], ref neuralState.Q2[5], ref neuralState.Q3[5],
+                        ref neuralState.E[5], ref neuralState.LP[5], ref neuralState.L2P[5], ref neuralState.L3P[5],
+                        90 + 3 * neuralState.CPGs[6] * neuralState.DIR2 * (neuralState.DIR3 - neuralState.DIR4),
+                        neuralState.DIR2 * 5 * neuralState.CPGs[6] + RangoOPQ1_offset[5],
+                        neuralState.CPGs[9], 1);
+
+
+
                 for (int i = 0; i < 6; i++)
                 {
-                    // You may want to tune T, cpgXY, cpgZ as in HexapodSimulation
-                    float cpgXY = (i % 2 == 0 ? neuralState.CPGs[5] : neuralState.CPGs[6]) * neuralState.DIR1 * 5;
-                    float T = 130 + 3 * cpgXY * neuralState.DIR1;
-                    float cpgZ = (i % 2 == 0 ? neuralState.CPGs[8] : neuralState.CPGs[9]);
-                    Locomotion.Update(ref neuralState.Q1[i], ref neuralState.Q2[i], ref neuralState.Q3[i],
-                        ref neuralState.E[i], ref neuralState.LP[i], ref neuralState.L2P[i], ref neuralState.L3P[i],
-                        T, cpgXY, cpgZ, dt);
                     var angleModifier = -1f;
+                    var angleModifierCOX = -1f;
                     if (i < 3) angleModifier = 1f;
                     // Apply neural circuit joint angles
                     var coxaBody = coxas[i].GetComponent<ArticulationBody>();
                     var coxaDrive = coxaBody.xDrive;
-                    coxaDrive.target = neuralState.Q1[i] * angleModifier;
+                    coxaDrive.target = neuralState.Q1[i] * angleModifier*angleModifierCOX;
                     coxaBody.xDrive = coxaDrive;
                     var femurBody = femurs[i].GetComponent<ArticulationBody>();
                     var femurDrive = femurBody.xDrive;
@@ -177,7 +227,7 @@ public class AntaresController : MonoBehaviour
                     femurBody.xDrive = femurDrive;
                     var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
                     var tibiaDrive = tibiaBody.xDrive;
-                    tibiaDrive.target = neuralState.Q3[i] * angleModifier;
+                    tibiaDrive.target = (-neuralState.Q2[i]-90)*angleModifier ;
                     tibiaBody.xDrive = tibiaDrive;
                 }
             }
