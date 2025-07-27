@@ -3,9 +3,10 @@ using System;
 
 public static class Stimuli
 {
+    // Función Naka-Rushton actualizada
     private static float NakaRushton(float x)
     {
-        float g = 3f, sigma = 0.5f, n = 2f;
+        float g = 1f, sigma = 0.5f, n = 2f;
         x = Mathf.Max(0f, x);
         return (g * Mathf.Pow(x, n)) / (Mathf.Pow(x, n) + Mathf.Pow(sigma, n) + Mathf.Epsilon);
     }
@@ -14,14 +15,15 @@ public static class Stimuli
     {
         float tau = 10f;
 
-        float FW_in = 6 * go - bk - spinL - spinR;
-        float BW_in = 6 * bk - go - spinL - spinR;
-        float TL_in = 6 * spinL - go - bk - spinR;
-        float TR_in = 6 * spinR - go - bk - spinL;
-        float L_in  = 6 * left - s.R;
-        float R_in  = 6 * right - s.L;
-        float MOV_in = 5 * (s.FW + s.BW + s.TL + s.TR + s.L + s.R);
-        float DIR4_in = s.TL + s.TR;
+        // === Neuronas intermedias (salida en [0, 1]) ===
+        float FW_in = 1f * go - 1f * s.BW - 1f * s.TL - 1f * s.TR;
+        float BW_in = 1f * bk - 1f * s.FW - 1f * s.TL - 1f * s.TR;
+        float TL_in = 1f * spinL - 1f * s.BW - 1f * s.FW - 1f * s.TR;
+        float TR_in = 1f * spinR - 1f * s.BW - 1f * s.FW - 1f * s.TL;
+        float L_in  = 1f * left - 1f * s.R;
+        float R_in  = 1f * right - 1f * s.L;
+        float MOV_in = 5f * (s.FW + s.BW + s.TL + s.TR + s.L + s.R);
+        float DIR4_in = 1f * s.TL + 1f * s.TR;
 
         float FW_target = NakaRushton(FW_in);
         float BW_target = NakaRushton(BW_in);
@@ -41,8 +43,9 @@ public static class Stimuli
         s.MOV += (dt / tau) * (-s.MOV + MOV_target);
         s.DIR4 += (dt / tau) * (-s.DIR4 + DIR4_target);
 
+        // === Neuronas de dirección (salida en [-1, 1]) ===
         float DIR1_in = s.FW + s.TL - s.BW - s.TR;
-        float DIR2_in = -s.FW + s.TL + s.BW - s.TR;
+        float DIR2_in = s.FW - s.TL - s.BW + s.TR; // Ajuste de signos
         float DIR3_in = s.R - s.L;
 
         s.DIR1 += (dt / tau) * (-s.DIR1 + (float)Math.Tanh(DIR1_in));
