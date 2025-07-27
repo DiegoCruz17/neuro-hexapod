@@ -23,6 +23,11 @@ public class AntaresController : MonoBehaviour
     public float hb = -20f;
     public float wb = 80f;
 
+    // VARIABLES DE LA RED//
+    public float go = 0f;
+    public float bk = 0f;
+    public float left = 0f;
+    public float right = 0f;
     private Vector3[] mountPoints;
 
     private Transform[] coxas;
