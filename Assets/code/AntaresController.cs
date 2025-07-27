@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;  
 
 public class AntaresController : MonoBehaviour
 {
@@ -42,6 +43,15 @@ public class AntaresController : MonoBehaviour
     public float dt = 0.01f; // Simulation timestep for neural circuit
     public float[] RangoOPQ1_offset = new float[] { 40, 0, -40, -40, 0, 40 };
 
+    private ControlPlay controls;
+    private Vector2 moveInput; // Guardará el valor del analógico izquierdo
+    private bool girandoDerecha = false;
+    private bool girandoIzquierda = false;
+    private ControlMode previousMode;
+    private float previousD = 0f;
+    private Vector2 FlechasInput;
+    public bool useGamepadControl = true;
+
     void Start()
     {
         if (disableGravity)
@@ -77,12 +87,107 @@ public class AntaresController : MonoBehaviour
             tibias[i] = femurs[i].GetChild(0);
         }
         sensors = GetComponent<Sensors>();
+        previousMode = controlMode;
+
+
+
+    }
+    void OnEnable()
+    {
+        controls = new ControlPlay();
+        controls.Enable();
+        controls.Move.Mover.performed += OnMovePerformed;
+        controls.Move.Mover.canceled += OnMoveCanceled;
+        controls.Move.GiroDer.started += OnGiroDerStarted;
+        controls.Move.GiroDer.canceled += OnGiroDerCanceled;
+        controls.Move.GiroIzq.started += OnGiroIzqStarted;
+        controls.Move.GiroIzq.canceled += OnGiroIzqCanceled;
+        controls.Move.Flechas.performed += OnFlechasPerformed;
+        controls.Move.Flechas.canceled += OnFlechasCanceled;
+
+
+    }
+    
+    void OnDisable()
+    {
+        controls.Move.Mover.performed -= OnMovePerformed;
+        controls.Move.Mover.canceled -= OnMoveCanceled;
+        controls.Move.GiroDer.started -= OnGiroDerStarted;
+        controls.Move.GiroDer.canceled -= OnGiroDerCanceled;
+        controls.Move.GiroIzq.started -= OnGiroIzqStarted;
+        controls.Move.GiroIzq.canceled -= OnGiroIzqCanceled;
+        controls.Move.Flechas.performed -= ctx => FlechasInput = ctx.ReadValue<Vector2>();
+        controls.Move.Flechas.canceled -= ctx => FlechasInput = Vector2.zero;
+        controls.Move.Flechas.performed -= OnFlechasPerformed;
+        controls.Move.Flechas.canceled -= OnFlechasCanceled;
+
+        controls.Disable();
     }
 
     void Update()
     {
         if (controlMode == ControlMode.InverseKinematics)
         {
+            if (girandoDerecha || girandoIzquierda)
+            {
+                d = 40f;           // velocidad constante
+                al = 50f;          // amplitud de paso
+                w = -1f;           // dirección de paso invertida
+                ra = 1f;           // orientación radial
+                c = 20f;           // radio de curvatura del giro
+                rs = girandoDerecha ? 0f : Mathf.PI;  // 0 = giro horario, PI = antihorario
+            }
+            else
+            {
+                ra = 0f;
+                c = 0f;
+                w = 1f;
+
+                if (useGamepadControl)
+                {
+                    float magnitude = moveInput.magnitude;
+                    float angleRad = Mathf.Atan2(-moveInput.x, moveInput.y);
+                    if (angleRad < 0)
+                        angleRad += 2 * Mathf.PI;
+
+                    d = Mathf.Clamp01(magnitude) * 40f;
+
+                    if (d < 1f)
+                    {
+                        d = 0.001f;
+                        al = 0f;
+                    }
+                    else
+                    {
+                        al = 20f;
+                    }
+
+                    rs = angleRad;
+                }
+                else
+                {
+                    // Control manual desde el Inspector: d, al, rs ya están definidos en el editor
+                    // No hagas nada: usa los valores que ya tienes puestos en el Inspector
+                }
+            }
+
+            // Reiniciar k si el modo cambió
+            if (previousMode != controlMode)
+            {
+                k = 0f;
+                previousMode = controlMode;
+            }
+
+            // Reiniciar k si se pasa de quieto a movimiento
+            if (previousD < 1f && d >= 1f)
+            {
+                k = 0f;
+            }
+            previousD = d;
+
+            // Debug opcional
+            Debug.Log($"Input: {moveInput}, D: {d:F2}, Rs: {rs:F2} rad");
+
             var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k, hb, wb);
             for (int i = 0; i < 6; i++)
             {
@@ -165,5 +270,60 @@ public class AntaresController : MonoBehaviour
                 }
             }
         }
+    }
+    
+    private ArticulationDrive ConfigureDrive(float target, float stiffness = 1000f, float damping = 500f, float forceLimit = 100f)
+    {
+        ArticulationDrive drive = new ArticulationDrive();
+        drive.stiffness = stiffness;
+        drive.damping = damping;
+        drive.forceLimit = forceLimit;
+        drive.target = target;
+        drive.targetVelocity = 0f; // No se usa cuando stiffness > 0
+        return drive;
+    }
+    private void OnMovePerformed(InputAction.CallbackContext ctx)
+    {
+        moveInput = ctx.ReadValue<Vector2>();
+    }
+
+    private void OnMoveCanceled(InputAction.CallbackContext ctx)
+    {
+        moveInput = Vector2.zero;
+    }
+    private void OnGiroDerStarted(InputAction.CallbackContext ctx) => girandoDerecha = true;
+    private void OnGiroDerCanceled(InputAction.CallbackContext ctx) => girandoDerecha = false;
+    private void OnGiroIzqStarted(InputAction.CallbackContext ctx) => girandoIzquierda = true;
+    private void OnGiroIzqCanceled(InputAction.CallbackContext ctx) => girandoIzquierda = false;
+    private void OnFlechasPerformed(InputAction.CallbackContext ctx)
+    {
+        FlechasInput = ctx.ReadValue<Vector2>();
+
+        if (FlechasInput.y > 0.5f)
+        {
+            hb -= 5;
+            Debug.Log("flecha arriba hb -= 5 => " + hb);
+        }
+        else if (FlechasInput.y < -0.5f)
+        {
+            hb += 5;
+            Debug.Log("flecha abajo hb += 5 => " + hb);
+        }
+
+        if (FlechasInput.x > 0.5f)
+        {
+            wb += 5;
+            Debug.Log("flecha derecha wb += 5 => " + wb);
+        }
+        else if (FlechasInput.x < -0.5f)
+        {
+            wb -= 5;
+            Debug.Log("flecha izquierda wb -= 5 => " + wb);
+        }
+    }
+
+    private void OnFlechasCanceled(InputAction.CallbackContext ctx)
+    {
+        FlechasInput = Vector2.zero;
     }
 }
