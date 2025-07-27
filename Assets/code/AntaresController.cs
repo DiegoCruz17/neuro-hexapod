@@ -24,11 +24,6 @@ public class AntaresController : MonoBehaviour
     public float hb = -20f;
     public float wb = 80f;
 
-    // VARIABLES DE LA RED//
-    public float go = 0f;
-    public float bk = 0f;
-    public float left = 0f;
-    public float right = 0f;
     private Vector3[] mountPoints;
 
     private Transform[] coxas;
@@ -41,7 +36,17 @@ public class AntaresController : MonoBehaviour
     private Sensors sensors;
     private HexapodState neuralState = new HexapodState();
     public float dt = 0.01f; // Simulation timestep for neural circuit
+        // VARIABLES DE LA RED//
+    public float go = 0f;
+    public float bk = 0f;
+    public float left = 0f;
+    public float right = 0f;
+
+    public float spinL = 0f;
+    public float spinR = 0f;
+
     public float[] RangoOPQ1_offset = new float[] { 40, 0, -40, -40, 0, 40 };
+    public float[] T = new float[] { 90, 130, 90, 90, 130, 90 };
 
     private ControlPlay controls;
     private Vector2 moveInput; // Guardará el valor del analógico izquierdo
@@ -221,38 +226,38 @@ public class AntaresController : MonoBehaviour
         }
         else if (controlMode == ControlMode.NeuralCircuit)
         {
-            float go = 0, bk = 0, left = 0, right = 0, D = 4, T = 90;
+            float D = 4;
 
             for (int j = 0; j < 50; j++)
             {
-                Stimuli.Update(neuralState, go, bk, 10, 0, left, right, dt);
+                Stimuli.Update(neuralState, go, bk, spinL, spinR, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
 
                 // 6 patas (0-5)
                 Locomotion.Update(ref neuralState.Q1[0], ref neuralState.Q2[0], ref neuralState.Q3[0], ref neuralState.E[0], ref neuralState.Ei[0], ref neuralState.LP[0], ref neuralState.L2P[0], ref neuralState.L3P[0],
-                    T + neuralState.CPGs[5] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[0], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
+                    T[0] + neuralState.CPGs[5] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[0], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[4], ref neuralState.Q2[4], ref neuralState.Q3[4], ref neuralState.E[4], ref neuralState.Ei[4], ref neuralState.LP[4], ref neuralState.L2P[4], ref neuralState.L3P[4],
-                    T - neuralState.CPGs[5] * D * neuralState.DIR3, -neuralState.CPGs[5] * D * neuralState.DIR2 + RangoOPQ1_offset[4], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
+                    T[4] - neuralState.CPGs[5] * D * neuralState.DIR3, -neuralState.CPGs[5] * D * neuralState.DIR2 + RangoOPQ1_offset[4], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[2], ref neuralState.Q2[2], ref neuralState.Q3[2], ref neuralState.E[2], ref neuralState.Ei[2], ref neuralState.LP[2], ref neuralState.L2P[2], ref neuralState.L3P[2],
-                    T + neuralState.CPGs[5] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[2], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
+                    T[2] + neuralState.CPGs[5] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[2], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[3], ref neuralState.Q2[3], ref neuralState.Q3[3], ref neuralState.E[3], ref neuralState.Ei[3], ref neuralState.LP[3], ref neuralState.L2P[3], ref neuralState.L3P[3],
-                    T - neuralState.CPGs[6] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[3], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
+                    T[3] - neuralState.CPGs[6] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[3], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[1], ref neuralState.Q2[1], ref neuralState.Q3[1], ref neuralState.E[1], ref neuralState.Ei[1], ref neuralState.LP[1], ref neuralState.L2P[1], ref neuralState.L3P[1],
-                    T + neuralState.CPGs[6] * D * neuralState.DIR3, neuralState.CPGs[6] * D * neuralState.DIR1 + RangoOPQ1_offset[1], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
+                    T[1] + neuralState.CPGs[6] * D * neuralState.DIR3, -neuralState.CPGs[6] * D * neuralState.DIR1 + RangoOPQ1_offset[1], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
                 
                 Locomotion.Update(ref neuralState.Q1[5], ref neuralState.Q2[5], ref neuralState.Q3[5], ref neuralState.E[5], ref neuralState.Ei[5], ref neuralState.LP[5], ref neuralState.L2P[5], ref neuralState.L3P[5],
-                    T - neuralState.CPGs[6] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[5], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
+                    T[5] - neuralState.CPGs[6] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[5], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
 
                 // Aplicar ángulos
                 for (int i = 0; i < 6; i++)
                 {
                     var angleModifier = -1f;
                     var angleModifierCOX = 1f;
-                    if (i < 3) { angleModifier = 1f; angleModifierCOX = -1f; }
+                    if (i < 3) { angleModifier = 1f; angleModifierCOX = 1f; }
                     var coxaBody = coxas[i].GetComponent<ArticulationBody>();
                     var coxaDrive = coxaBody.xDrive;
                     coxaDrive.target = neuralState.Q1[i] * angleModifier * angleModifierCOX;
