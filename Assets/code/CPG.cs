@@ -8,9 +8,9 @@ public static class CPG
     {
         float Ao = 100, Bo = 120, Co = 1.5f, Do = 2.7f;
         float a = 1, b = 1;
-        float tau1o = 8, tau2o = 16, tau3o = 150, tau4o = 150;
+        float tau1o = 80, tau2o = 160, tau3o = 1500, tau4o = 1500;
 
-        float u = 1, u2 = 1;
+        float u = 50, u2 = 50;
 
         CPGs[0] += (dt / tau1o) * (-a * CPGs[0] + 
             (Ao * Mathf.Pow(150 - Do * CPGs[1], 2)) / 
