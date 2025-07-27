@@ -28,7 +28,7 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
             ""id"": ""5be7bcbb-8835-4085-93eb-98e07fd103aa"",
             ""actions"": [
                 {
-                    ""name"": ""TrunLeft"",
+                    ""name"": ""GiroIzq"",
                     ""type"": ""Button"",
                     ""id"": ""f3cbe2ff-bad1-43d1-b242-d2e35d449dd3"",
                     ""expectedControlType"": ""Button"",
@@ -37,35 +37,75 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""TurnRight"",
+                    ""name"": ""GiroDer"",
                     ""type"": ""Button"",
                     ""id"": ""ad0d3b5a-4cda-44f5-a3e4-15247b242bfa"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Mover"",
+                    ""type"": ""PassThrough"",
+                    ""id"": ""877137f5-bd8e-47d6-a477-c81240d9a107"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Flechas"",
+                    ""type"": ""Value"",
+                    ""id"": ""8609f03f-f4bc-457c-baa4-3ca372147416"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
                 {
                     ""name"": """",
                     ""id"": ""506311a0-3fa6-4c03-be92-ce4e23d8e2c3"",
-                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""path"": ""<Gamepad>/leftShoulder"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""TrunLeft"",
+                    ""action"": ""GiroIzq"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
                     ""id"": ""8300f067-1177-47e7-8e12-d9a43956e73f"",
-                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""TurnRight"",
+                    ""action"": ""GiroDer"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bf242dc5-6325-4ab5-8a61-342f8a6c23a7"",
+                    ""path"": ""<Gamepad>/leftStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Mover"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""1671976e-f7d3-4e6a-92b9-d8028eb9210a"",
+                    ""path"": ""<Gamepad>/dpad"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Flechas"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -76,8 +116,10 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
 }");
         // Move
         m_Move = asset.FindActionMap("Move", throwIfNotFound: true);
-        m_Move_TrunLeft = m_Move.FindAction("TrunLeft", throwIfNotFound: true);
-        m_Move_TurnRight = m_Move.FindAction("TurnRight", throwIfNotFound: true);
+        m_Move_GiroIzq = m_Move.FindAction("GiroIzq", throwIfNotFound: true);
+        m_Move_GiroDer = m_Move.FindAction("GiroDer", throwIfNotFound: true);
+        m_Move_Mover = m_Move.FindAction("Mover", throwIfNotFound: true);
+        m_Move_Flechas = m_Move.FindAction("Flechas", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -137,14 +179,18 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
     // Move
     private readonly InputActionMap m_Move;
     private IMoveActions m_MoveActionsCallbackInterface;
-    private readonly InputAction m_Move_TrunLeft;
-    private readonly InputAction m_Move_TurnRight;
+    private readonly InputAction m_Move_GiroIzq;
+    private readonly InputAction m_Move_GiroDer;
+    private readonly InputAction m_Move_Mover;
+    private readonly InputAction m_Move_Flechas;
     public struct MoveActions
     {
         private @ControlPlay m_Wrapper;
         public MoveActions(@ControlPlay wrapper) { m_Wrapper = wrapper; }
-        public InputAction @TrunLeft => m_Wrapper.m_Move_TrunLeft;
-        public InputAction @TurnRight => m_Wrapper.m_Move_TurnRight;
+        public InputAction @GiroIzq => m_Wrapper.m_Move_GiroIzq;
+        public InputAction @GiroDer => m_Wrapper.m_Move_GiroDer;
+        public InputAction @Mover => m_Wrapper.m_Move_Mover;
+        public InputAction @Flechas => m_Wrapper.m_Move_Flechas;
         public InputActionMap Get() { return m_Wrapper.m_Move; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -154,29 +200,43 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         {
             if (m_Wrapper.m_MoveActionsCallbackInterface != null)
             {
-                @TrunLeft.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnTrunLeft;
-                @TrunLeft.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnTrunLeft;
-                @TrunLeft.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnTrunLeft;
-                @TurnRight.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnTurnRight;
-                @TurnRight.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnTurnRight;
-                @TurnRight.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnTurnRight;
+                @GiroIzq.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnGiroIzq;
+                @GiroIzq.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnGiroIzq;
+                @GiroIzq.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnGiroIzq;
+                @GiroDer.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnGiroDer;
+                @GiroDer.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnGiroDer;
+                @GiroDer.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnGiroDer;
+                @Mover.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnMover;
+                @Mover.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnMover;
+                @Mover.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnMover;
+                @Flechas.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnFlechas;
+                @Flechas.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnFlechas;
+                @Flechas.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnFlechas;
             }
             m_Wrapper.m_MoveActionsCallbackInterface = instance;
             if (instance != null)
             {
-                @TrunLeft.started += instance.OnTrunLeft;
-                @TrunLeft.performed += instance.OnTrunLeft;
-                @TrunLeft.canceled += instance.OnTrunLeft;
-                @TurnRight.started += instance.OnTurnRight;
-                @TurnRight.performed += instance.OnTurnRight;
-                @TurnRight.canceled += instance.OnTurnRight;
+                @GiroIzq.started += instance.OnGiroIzq;
+                @GiroIzq.performed += instance.OnGiroIzq;
+                @GiroIzq.canceled += instance.OnGiroIzq;
+                @GiroDer.started += instance.OnGiroDer;
+                @GiroDer.performed += instance.OnGiroDer;
+                @GiroDer.canceled += instance.OnGiroDer;
+                @Mover.started += instance.OnMover;
+                @Mover.performed += instance.OnMover;
+                @Mover.canceled += instance.OnMover;
+                @Flechas.started += instance.OnFlechas;
+                @Flechas.performed += instance.OnFlechas;
+                @Flechas.canceled += instance.OnFlechas;
             }
         }
     }
     public MoveActions @Move => new MoveActions(this);
     public interface IMoveActions
     {
-        void OnTrunLeft(InputAction.CallbackContext context);
-        void OnTurnRight(InputAction.CallbackContext context);
+        void OnGiroIzq(InputAction.CallbackContext context);
+        void OnGiroDer(InputAction.CallbackContext context);
+        void OnMover(InputAction.CallbackContext context);
+        void OnFlechas(InputAction.CallbackContext context);
     }
 }

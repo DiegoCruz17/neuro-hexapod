@@ -6,7 +6,7 @@
             "id": "5be7bcbb-8835-4085-93eb-98e07fd103aa",
             "actions": [
                 {
-                    "name": "TrunLeft",
+                    "name": "GiroIzq",
                     "type": "Button",
                     "id": "f3cbe2ff-bad1-43d1-b242-d2e35d449dd3",
                     "expectedControlType": "Button",
@@ -15,35 +15,75 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "TurnRight",
+                    "name": "GiroDer",
                     "type": "Button",
                     "id": "ad0d3b5a-4cda-44f5-a3e4-15247b242bfa",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Mover",
+                    "type": "PassThrough",
+                    "id": "877137f5-bd8e-47d6-a477-c81240d9a107",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Flechas",
+                    "type": "Value",
+                    "id": "8609f03f-f4bc-457c-baa4-3ca372147416",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
                 {
                     "name": "",
                     "id": "506311a0-3fa6-4c03-be92-ce4e23d8e2c3",
-                    "path": "<Gamepad>/leftTrigger",
+                    "path": "<Gamepad>/leftShoulder",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "TrunLeft",
+                    "action": "GiroIzq",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
                     "id": "8300f067-1177-47e7-8e12-d9a43956e73f",
-                    "path": "<Gamepad>/rightTrigger",
+                    "path": "<Gamepad>/rightShoulder",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "TurnRight",
+                    "action": "GiroDer",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bf242dc5-6325-4ab5-8a61-342f8a6c23a7",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Mover",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1671976e-f7d3-4e6a-92b9-d8028eb9210a",
+                    "path": "<Gamepad>/dpad",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Flechas",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
