@@ -116,11 +116,11 @@ public class AntaresController : MonoBehaviour
         }
         else if (controlMode == ControlMode.NeuralCircuit)
         {
-            float go = 0, bk = 0, left = 0, right = 0, D = 4, T = 90;
+            float go = 10, bk = 0, left = 0, right = 0, D = 4, T = 90;
 
             for (int j = 0; j < 50; j++)
             {
-                Stimuli.Update(neuralState, go, bk, 10, 0, left, right, dt);
+                Stimuli.Update(neuralState, go, bk, 0, 0, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
 
                 // 6 patas (0-5)
