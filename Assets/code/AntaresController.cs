@@ -120,7 +120,7 @@ public class AntaresController : MonoBehaviour
 
             for (int j = 0; j < 50; j++)
             {
-                Stimuli.Update(neuralState, go, bk, 0, 10, left, right, dt);
+                Stimuli.Update(neuralState, go, bk, 10, 0, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
 
                 // 6 patas (0-5)
