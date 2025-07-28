@@ -234,6 +234,42 @@ public class AntaresController : MonoBehaviour
         }
         else if (controlMode == ControlMode.NeuralCircuit)
         {
+            //CONTROL POR MEDIO DEL PS4, HACE PARTE DE LA SEGUNDA VERSION 
+            
+            // Reseteo inputs
+            /* go = 0f;
+            bk = 0f;
+            left = 0f;
+            right = 0f;
+            spinL = 0f;
+            spinR = 0f; */
+
+            // Leer input del analógico
+            float joystickX = moveInput.x;
+            float joystickY = moveInput.y;
+
+            // Umbral mínimo para evitar ruidos pequeños
+            float threshold = 0.2f;
+
+            if (joystickY > threshold)
+                go = joystickY;
+            else if (joystickY < -threshold)
+                bk = -joystickY;
+
+            if (joystickX > threshold)
+                right = joystickX;
+            else if (joystickX < -threshold)
+                left = -joystickX;
+
+            // Leer spin con L2 y R2
+            float l2 = controls.Move.GiroIzq.ReadValue<float>();
+            float r2 = controls.Move.GiroDer.ReadValue<float>();
+
+            if (l2 > 0.2f)
+                spinL = l2;
+            if (r2 > 0.2f)
+                spinR = r2;
+            //////////////////////////////////////////////////////
             float D = 4;
 
             for (int j = 0; j < 50; j++)
@@ -333,6 +369,51 @@ public class AntaresController : MonoBehaviour
         {
             wb -= 5;
             Debug.Log("flecha izquierda wb -= 5 => " + wb);
+        }
+    } /////////////////////////////////////////////////////////
+
+    //SEGUNDA VERSION DEL CONTROL PS4 PARA KINEMATICA Y RED NEURONAL 
+
+    private void OnFlechasPerformed(InputAction.CallbackContext ctx)
+    {
+        FlechasInput = ctx.ReadValue<Vector2>();
+
+        if (controlMode == ControlMode.InverseKinematics)
+        {
+            if (FlechasInput.y > 0.5f)
+            {
+                hb -= 5;
+                Debug.Log("Flecha arriba hb -= 5 => " + hb);
+            }
+            else if (FlechasInput.y < -0.5f)
+            {
+                hb += 5;
+                Debug.Log("Flecha abajo hb += 5 => " + hb);
+            }
+
+            if (FlechasInput.x > 0.5f)
+            {
+                wb += 5;
+                Debug.Log("Flecha derecha wb += 5 => " + wb);
+            }
+            else if (FlechasInput.x < -0.5f)
+            {
+                wb -= 5;
+                Debug.Log("Flecha izquierda wb -= 5 => " + wb);
+            }
+        }
+        else if (controlMode == ControlMode.NeuralCircuit)
+        {
+            if (FlechasInput.y > 0.5f)
+            {
+                dt += 0.01f;
+                Debug.Log("Flecha arriba dt += 0.001 => " + dt);
+            }
+            else if (FlechasInput.y < -0.5f)
+            {
+                dt = Mathf.Max(0.01f, dt - 0.01f); // evitar dt negativo o 0
+                Debug.Log("Flecha abajo dt -= 0.001 => " + dt);
+            }
         }
     }
 
