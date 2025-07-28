@@ -23,6 +23,10 @@ public class AntaresController : MonoBehaviour
 
     public float hb = -20f;
     public float wb = 80f;
+    
+    // Interpolation variables for smooth al transitions
+    private float targetAl = 60f;
+    public float alInterpolationSpeed = 20f; // Units per second
 
     private Vector3[] mountPoints;
 
@@ -93,9 +97,9 @@ public class AntaresController : MonoBehaviour
         }
         sensors = GetComponent<Sensors>();
         previousMode = controlMode;
-
-
-
+        
+        // Initialize targetAl to current al value to prevent initial jump
+        targetAl = al;
     }
     void OnEnable()
     {
@@ -136,7 +140,7 @@ public class AntaresController : MonoBehaviour
             if (girandoDerecha || girandoIzquierda)
             {
                 d = 40f;           // velocidad constante
-                al = 50f;          // amplitud de paso
+                targetAl = 50f;    // amplitud de paso (target)
                 w = -1f;           // dirección de paso invertida
                 ra = 1f;           // orientación radial
                 c = 20f;           // radio de curvatura del giro
@@ -160,11 +164,11 @@ public class AntaresController : MonoBehaviour
                     if (d < 1f)
                     {
                         d = 0.001f;
-                        al = 0f;
+                        targetAl = 0f;
                     }
                     else
                     {
-                        al = 20f;
+                        targetAl = 20f;
                     }
 
                     rs = angleRad;
@@ -172,9 +176,13 @@ public class AntaresController : MonoBehaviour
                 else
                 {
                     // Control manual desde el Inspector: d, al, rs ya están definidos en el editor
-                    // No hagas nada: usa los valores que ya tienes puestos en el Inspector
+                    // targetAl uses the current al value from the inspector
+                    targetAl = al;
                 }
             }
+            
+            // Smoothly interpolate al towards targetAl
+            al = Mathf.MoveTowards(al, targetAl, alInterpolationSpeed * Time.deltaTime);
 
             // Reiniciar k si el modo cambió
             if (previousMode != controlMode)
@@ -295,11 +303,12 @@ public class AntaresController : MonoBehaviour
     private void OnMoveCanceled(InputAction.CallbackContext ctx)
     {
         moveInput = Vector2.zero;
+        n = 0;
     }
     private void OnGiroDerStarted(InputAction.CallbackContext ctx) => girandoDerecha = true;
-    private void OnGiroDerCanceled(InputAction.CallbackContext ctx) => girandoDerecha = false;
+    private void OnGiroDerCanceled(InputAction.CallbackContext ctx){girandoDerecha = false; n = 0;}
     private void OnGiroIzqStarted(InputAction.CallbackContext ctx) => girandoIzquierda = true;
-    private void OnGiroIzqCanceled(InputAction.CallbackContext ctx) => girandoIzquierda = false;
+    private void OnGiroIzqCanceled(InputAction.CallbackContext ctx){girandoIzquierda = false; n = 0;}
     private void OnFlechasPerformed(InputAction.CallbackContext ctx)
     {
         FlechasInput = ctx.ReadValue<Vector2>();
@@ -330,5 +339,108 @@ public class AntaresController : MonoBehaviour
     private void OnFlechasCanceled(InputAction.CallbackContext ctx)
     {
         FlechasInput = Vector2.zero;
+    }
+
+    // Method to get joint forces and torques
+    public void LogJointForcesTorques()
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            // Coxa joint
+            var coxaBody = coxas[i].GetComponent<ArticulationBody>();
+            if (coxaBody != null)
+            {
+                var coxaJointForce = coxaBody.jointForce;
+                string coxaForceStr = "Joint Forces: ";
+                for (int dof = 0; dof < coxaJointForce.dofCount; dof++)
+                {
+                    coxaForceStr += $"DOF{dof}: {coxaJointForce[dof]:F2} ";
+                }
+                
+                Debug.Log($"Leg {i} Coxa - {coxaForceStr}");
+            }
+
+            // Femur joint
+            var femurBody = femurs[i].GetComponent<ArticulationBody>();
+            if (femurBody != null)
+            {
+                var femurJointForce = femurBody.jointForce;
+                string femurForceStr = "Joint Forces: ";
+                for (int dof = 0; dof < femurJointForce.dofCount; dof++)
+                {
+                    femurForceStr += $"DOF{dof}: {femurJointForce[dof]:F2} ";
+                }
+                
+                Debug.Log($"Leg {i} Femur - {femurForceStr}");
+            }
+
+            // Tibia joint
+            var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
+            if (tibiaBody != null)
+            {
+                var tibiaJointForce = tibiaBody.jointForce;
+                string tibiaForceStr = "Joint Forces: ";
+                for (int dof = 0; dof < tibiaJointForce.dofCount; dof++)
+                {
+                    tibiaForceStr += $"DOF{dof}: {tibiaJointForce[dof]:F2} ";
+                }
+                
+                Debug.Log($"Leg {i} Tibia - {tibiaForceStr}");
+            }
+        }
+    }
+
+    // Method to get total joint load for a specific leg
+    public float GetLegTotalForce(int legIndex)
+    {
+        if (legIndex < 0 || legIndex >= 6) return 0f;
+        
+        float totalForce = 0f;
+        
+        var coxaBody = coxas[legIndex].GetComponent<ArticulationBody>();
+        if (coxaBody != null)
+        {
+            var jointForce = coxaBody.jointForce;
+            for (int dof = 0; dof < jointForce.dofCount; dof++)
+            {
+                totalForce += Mathf.Abs(jointForce[dof]);
+            }
+        }
+            
+        var femurBody = femurs[legIndex].GetComponent<ArticulationBody>();
+        if (femurBody != null)
+        {
+            var jointForce = femurBody.jointForce;
+            for (int dof = 0; dof < jointForce.dofCount; dof++)
+            {
+                totalForce += Mathf.Abs(jointForce[dof]);
+            }
+        }
+            
+        var tibiaBody = tibias[legIndex].GetComponent<ArticulationBody>();
+        if (tibiaBody != null)
+        {
+            var jointForce = tibiaBody.jointForce;
+            for (int dof = 0; dof < jointForce.dofCount; dof++)
+            {
+                totalForce += Mathf.Abs(jointForce[dof]);
+            }
+        }
+            
+        return totalForce;
+    }
+
+    // Method to get joint torque for a specific joint
+    public float GetJointTorque(ArticulationBody joint)
+    {
+        if (joint == null) return 0f;
+        
+        var jointForce = joint.jointForce;
+        if (jointForce.dofCount > 0)
+        {
+            // For revolute joints, there's typically 1 DOF representing torque
+            return jointForce[0];
+        }
+        return 0f;
     }
 }
