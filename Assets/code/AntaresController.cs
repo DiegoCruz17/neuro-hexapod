@@ -29,8 +29,8 @@ public class AntaresController : MonoBehaviour
     public float bk;
     public float left;
     public float right;
-    public float spinl;
-    public float spinr;
+    public float spinL;
+    public float spinR;
     
     // Interpolation variables for smooth al transitions
     private float targetAl = 60f;
@@ -48,14 +48,6 @@ public class AntaresController : MonoBehaviour
     private Sensors sensors;
     private HexapodState neuralState = new HexapodState();
     public float dt = 0.01f; // Simulation timestep for neural circuit
-        // VARIABLES DE LA RED//
-    public float go = 0f;
-    public float bk = 0f;
-    public float left = 0f;
-    public float right = 0f;
-
-    public float spinL = 0f;
-    public float spinR = 0f;
 
     public float[] RangoOPQ1_offset = new float[] { 40, 0, -40, -40, 0, 40 };
     public float[] T = new float[] { 90, 130, 90, 90, 130, 90 };
@@ -284,8 +276,8 @@ public class AntaresController : MonoBehaviour
             if (r2 > 0.2f)
                 spinR = r2;
             //////////////////////////////////////////////////////
-            go = 0; bk = 0; left = 0; right = 0;
-            float D = 4, T = 90;
+            //go = 0; bk = 0; left = 0; right = 0;
+            float D = 4;
 
 
             // Calcular dirección del analógico
@@ -296,11 +288,30 @@ public class AntaresController : MonoBehaviour
             float cos = Mathf.Cos(angle);
             float sin = Mathf.Sin(angle);
 
-            // Mapeo direccional proporcional (0–10)
+            if(moveInput.y < 0){
+                bk = -moveInput.y * 10f; // Retroceso
+                go = 0f; // No avance
+            }else{
+                bk = 0f; // No retroceso
+                go = moveInput.y * 10f; // Avance
+            }
+            if(moveInput.x < 0){
+                left = -moveInput.x * 10f; // Retroceso
+                right = 0f; // No avance
+            }else{
+                left = 0f; // No retroceso
+                right = moveInput.x * 10f; // Avance
+            }
+
+
+            // Mapeo direccional proporcional (0–10)/
+            /*
             go = Mathf.Clamp01(cos) * 10f;
             bk = Mathf.Clamp01(-cos) * 10f;
             right = Mathf.Clamp01(sin) * 10f;
             left = Mathf.Clamp01(-sin) * 10f;
+            */
+
             // Aplicar deadzone: go y bk deben ser mayores a 3 para activarse
             if (go < 3f) go = 0f;
             if (bk < 3f) bk = 0f;
@@ -318,26 +329,26 @@ public class AntaresController : MonoBehaviour
             }
             if (girandoDerecha)
             {
-                spinr = 10f;
-                spinl = 0f;
+                spinR = 10f;
+                spinL = 0f;
                 dt = 0.5f;
             }
             else if (girandoIzquierda)
             {
-                spinl = 10f;
-                spinr = 0f;
+                spinL = 10f;
+                spinR = 0f;
                 dt = 0.5f;
             }
             else
             {
-                spinl = 0f;
-                spinr = 0f;
+                spinL = 0f;
+                spinR = 0f;
             }
 
             dt = Mathf.Clamp(dt + dtOffset, 0f, 0.9f);
             for (int j = 0; j < 50; j++)
             {
-                Stimuli.Update(neuralState, go, bk, spinl, spinr, left, right, dt);
+                Stimuli.Update(neuralState, go, bk, spinL, spinR, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
 
                 // 6 patas (0-5)
@@ -384,11 +395,16 @@ public class AntaresController : MonoBehaviour
             // Resetear dtOffset si no hay movimiento ni giro
             if (moveInput.magnitude < 0.01f && !girandoDerecha && !girandoIzquierda)
             {
+                dt=0.3f; // resetear dt a 0.3 si no hay movimiento
                 if (dtOffset != 0f)
                 {
                     dtOffset = 0f;
-                    Debug.Log("dtOffset reseteado a 0 por estar quieto");
+                    Debug.Log("dtOffset reseteado a 0.3 por estar quieto");
                 }
+            }
+            if (dt< 0.05)
+            {
+                dt=0f;
             }
         }
     }
