@@ -62,6 +62,24 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""AumentarDt"",
+                    ""type"": ""Button"",
+                    ""id"": ""6099b217-aa2f-47a2-a7d7-18615e53a686"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""DisminuirDt"",
+                    ""type"": ""Button"",
+                    ""id"": ""1aab7b35-8b90-4d6b-93af-a48b3476ce76"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -108,6 +126,28 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                     ""action"": ""Flechas"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bd0e98ab-8446-4ff3-86fb-c2d895c77671"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""AumentarDt"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9cc59947-aa78-4ce5-ace6-f6e4aae4553f"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""DisminuirDt"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -120,6 +160,8 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         m_Move_GiroDer = m_Move.FindAction("GiroDer", throwIfNotFound: true);
         m_Move_Mover = m_Move.FindAction("Mover", throwIfNotFound: true);
         m_Move_Flechas = m_Move.FindAction("Flechas", throwIfNotFound: true);
+        m_Move_AumentarDt = m_Move.FindAction("AumentarDt", throwIfNotFound: true);
+        m_Move_DisminuirDt = m_Move.FindAction("DisminuirDt", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -183,6 +225,8 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
     private readonly InputAction m_Move_GiroDer;
     private readonly InputAction m_Move_Mover;
     private readonly InputAction m_Move_Flechas;
+    private readonly InputAction m_Move_AumentarDt;
+    private readonly InputAction m_Move_DisminuirDt;
     public struct MoveActions
     {
         private @ControlPlay m_Wrapper;
@@ -191,6 +235,8 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         public InputAction @GiroDer => m_Wrapper.m_Move_GiroDer;
         public InputAction @Mover => m_Wrapper.m_Move_Mover;
         public InputAction @Flechas => m_Wrapper.m_Move_Flechas;
+        public InputAction @AumentarDt => m_Wrapper.m_Move_AumentarDt;
+        public InputAction @DisminuirDt => m_Wrapper.m_Move_DisminuirDt;
         public InputActionMap Get() { return m_Wrapper.m_Move; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -212,6 +258,12 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                 @Flechas.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnFlechas;
                 @Flechas.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnFlechas;
                 @Flechas.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnFlechas;
+                @AumentarDt.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnAumentarDt;
+                @AumentarDt.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnAumentarDt;
+                @AumentarDt.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnAumentarDt;
+                @DisminuirDt.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnDisminuirDt;
+                @DisminuirDt.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnDisminuirDt;
+                @DisminuirDt.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnDisminuirDt;
             }
             m_Wrapper.m_MoveActionsCallbackInterface = instance;
             if (instance != null)
@@ -228,6 +280,12 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                 @Flechas.started += instance.OnFlechas;
                 @Flechas.performed += instance.OnFlechas;
                 @Flechas.canceled += instance.OnFlechas;
+                @AumentarDt.started += instance.OnAumentarDt;
+                @AumentarDt.performed += instance.OnAumentarDt;
+                @AumentarDt.canceled += instance.OnAumentarDt;
+                @DisminuirDt.started += instance.OnDisminuirDt;
+                @DisminuirDt.performed += instance.OnDisminuirDt;
+                @DisminuirDt.canceled += instance.OnDisminuirDt;
             }
         }
     }
@@ -238,5 +296,7 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         void OnGiroDer(InputAction.CallbackContext context);
         void OnMover(InputAction.CallbackContext context);
         void OnFlechas(InputAction.CallbackContext context);
+        void OnAumentarDt(InputAction.CallbackContext context);
+        void OnDisminuirDt(InputAction.CallbackContext context);
     }
 }
