@@ -25,10 +25,13 @@ public class AntaresController : MonoBehaviour
     public float wb = 80f;
 
     // VARIABLES DE LA RED//
-    public float go = 0f;
-    public float bk = 0f;
-    public float left = 0f;
-    public float right = 0f;
+    public float go;
+    public float bk;
+    public float left;
+    public float right;
+    public float spinl;
+    public float spinr;
+
     private Vector3[] mountPoints;
 
     private Transform[] coxas;
@@ -51,6 +54,8 @@ public class AntaresController : MonoBehaviour
     private float previousD = 0f;
     private Vector2 FlechasInput;
     public bool useGamepadControl = true;
+    private float analogMagnitude = 0f;
+    private float dtOffset = 0f;
 
     void Start()
     {
@@ -104,6 +109,8 @@ public class AntaresController : MonoBehaviour
         controls.Move.GiroIzq.canceled += OnGiroIzqCanceled;
         controls.Move.Flechas.performed += OnFlechasPerformed;
         controls.Move.Flechas.canceled += OnFlechasCanceled;
+        controls.Move.AumentarDt.started += OnR2Pressed;
+        controls.Move.DisminuirDt.started += OnL2Pressed;
 
 
     }
@@ -120,6 +127,8 @@ public class AntaresController : MonoBehaviour
         controls.Move.Flechas.canceled -= ctx => FlechasInput = Vector2.zero;
         controls.Move.Flechas.performed -= OnFlechasPerformed;
         controls.Move.Flechas.canceled -= OnFlechasCanceled;
+        controls.Move.AumentarDt.started -= OnR2Pressed;
+        controls.Move.DisminuirDt.started -= OnL2Pressed;
 
         controls.Disable();
     }
@@ -221,11 +230,60 @@ public class AntaresController : MonoBehaviour
         }
         else if (controlMode == ControlMode.NeuralCircuit)
         {
-            float go = 0, bk = 0, left = 0, right = 0, D = 4, T = 90;
+            go = 0; bk = 0; left = 0; right = 0;
+            float D = 4, T = 90;
 
+
+            // Calcular dirección del analógico
+            float angle = Mathf.Atan2(moveInput.x, moveInput.y); // Y es adelante
+            if (angle < 0) angle += 2 * Mathf.PI; // Aseguramos 0–2π
+
+            // Normalizar ángulo en rangos direccionales (tipo brújula)
+            float cos = Mathf.Cos(angle);
+            float sin = Mathf.Sin(angle);
+
+            // Mapeo direccional proporcional (0–10)
+            go = Mathf.Clamp01(cos) * 10f;
+            bk = Mathf.Clamp01(-cos) * 10f;
+            right = Mathf.Clamp01(sin) * 10f;
+            left = Mathf.Clamp01(-sin) * 10f;
+            // Aplicar deadzone: go y bk deben ser mayores a 3 para activarse
+            if (go < 3f) go = 0f;
+            if (bk < 3f) bk = 0f;
+
+            // Magnitud del stick (0–1), escalada a dt (0–0.5)
+            analogMagnitude = Mathf.Clamp01(moveInput.magnitude);
+            float dynamicDt = analogMagnitude * 0.5f;
+            
+
+
+            // Si no se está girando, usar dt dinámico
+            if (!girandoDerecha && !girandoIzquierda)
+            {
+                dt = dynamicDt;
+            }
+            if (girandoDerecha)
+            {
+                spinr = 10f;
+                spinl = 0f;
+                dt = 0.5f;
+            }
+            else if (girandoIzquierda)
+            {
+                spinl = 10f;
+                spinr = 0f;
+                dt = 0.5f;
+            }
+            else
+            {
+                spinl = 0f;
+                spinr = 0f;
+            }
+
+            dt = Mathf.Clamp(dt + dtOffset, 0f, 0.9f);
             for (int j = 0; j < 50; j++)
             {
-                Stimuli.Update(neuralState, go, bk, 10, 0, left, right, dt);
+                Stimuli.Update(neuralState, go, bk, spinl, spinr, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
 
                 // 6 patas (0-5)
@@ -269,9 +327,17 @@ public class AntaresController : MonoBehaviour
                     tibiaBody.xDrive = tibiaDrive;
                 }
             }
+            // Resetear dtOffset si no hay movimiento ni giro
+            if (moveInput.magnitude < 0.01f && !girandoDerecha && !girandoIzquierda)
+            {
+                if (dtOffset != 0f)
+                {
+                    dtOffset = 0f;
+                    Debug.Log("dtOffset reseteado a 0 por estar quieto");
+                }
+            }
         }
     }
-    
     private ArticulationDrive ConfigureDrive(float target, float stiffness = 1000f, float damping = 500f, float forceLimit = 100f)
     {
         ArticulationDrive drive = new ArticulationDrive();
@@ -326,4 +392,27 @@ public class AntaresController : MonoBehaviour
     {
         FlechasInput = Vector2.zero;
     }
+    private void OnR2Pressed(InputAction.CallbackContext ctx)
+    {
+        if (HexapodIsMoving())
+        {
+            dtOffset = Mathf.Min(dtOffset + 0.1f, 0.9f); // límite superior controlado por Clamp en Update
+            Debug.Log($"[R2] dtOffset aumentado a {dtOffset:F2}");
+        }
+    }
+
+    private void OnL2Pressed(InputAction.CallbackContext ctx)
+    {
+        if (HexapodIsMoving())
+        {
+            dtOffset = Mathf.Max(dtOffset - 0.1f, -0.4f); // para que no baje más allá del mínimo dt=0.1
+            Debug.Log($"[L2] dtOffset disminuido a {dtOffset:F2}");
+        }
+    }
+
+    private bool HexapodIsMoving()
+    {
+        return moveInput.magnitude > 0.1f || girandoDerecha || girandoIzquierda;
+    }
+
 }
