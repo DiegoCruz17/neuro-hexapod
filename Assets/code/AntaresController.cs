@@ -441,51 +441,6 @@ public class AntaresController : MonoBehaviour
             wb -= 5;
             Debug.Log("flecha izquierda wb -= 5 => " + wb);
         }
-    } /////////////////////////////////////////////////////////
-
-    //SEGUNDA VERSION DEL CONTROL PS4 PARA KINEMATICA Y RED NEURONAL 
-
-    private void OnFlechasPerformed(InputAction.CallbackContext ctx)
-    {
-        FlechasInput = ctx.ReadValue<Vector2>();
-
-        if (controlMode == ControlMode.InverseKinematics)
-        {
-            if (FlechasInput.y > 0.5f)
-            {
-                hb -= 5;
-                Debug.Log("Flecha arriba hb -= 5 => " + hb);
-            }
-            else if (FlechasInput.y < -0.5f)
-            {
-                hb += 5;
-                Debug.Log("Flecha abajo hb += 5 => " + hb);
-            }
-
-            if (FlechasInput.x > 0.5f)
-            {
-                wb += 5;
-                Debug.Log("Flecha derecha wb += 5 => " + wb);
-            }
-            else if (FlechasInput.x < -0.5f)
-            {
-                wb -= 5;
-                Debug.Log("Flecha izquierda wb -= 5 => " + wb);
-            }
-        }
-        else if (controlMode == ControlMode.NeuralCircuit)
-        {
-            if (FlechasInput.y > 0.5f)
-            {
-                dt += 0.01f;
-                Debug.Log("Flecha arriba dt += 0.001 => " + dt);
-            }
-            else if (FlechasInput.y < -0.5f)
-            {
-                dt = Mathf.Max(0.01f, dt - 0.01f); // evitar dt negativo o 0
-                Debug.Log("Flecha abajo dt -= 0.001 => " + dt);
-            }
-        }
     }
 
     private void OnFlechasCanceled(InputAction.CallbackContext ctx)
