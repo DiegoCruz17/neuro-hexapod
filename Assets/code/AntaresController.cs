@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;  
+using UnityEngine.InputSystem;
+using System.IO;
+using System.Text;
 
 public class AntaresController : MonoBehaviour
 {
@@ -31,7 +33,7 @@ public class AntaresController : MonoBehaviour
     public float right;
     public float spinL;
     public float spinR;
-    
+
     // Interpolation variables for smooth al transitions
     private float targetAl = 60f;
     public float alInterpolationSpeed = 20f; // Units per second
@@ -62,6 +64,16 @@ public class AntaresController : MonoBehaviour
     public bool useGamepadControl = true;
     private float analogMagnitude = 0f;
     private float dtOffset = 0f;
+
+    //////////////////////////////
+    private List<Vector3> positionHistory = new List<Vector3>();
+    private List<Vector3> velocityHistory = new List<Vector3>();
+    private List<float> angularVelocityHistory = new List<float>();
+    private float totalDistance = 0f;
+    private Vector3 lastPosition;
+    /// <summary>
+    /// //////////////////////////////////
+    /// </summary>
 
     void Start()
     {
@@ -99,7 +111,7 @@ public class AntaresController : MonoBehaviour
         }
         sensors = GetComponent<Sensors>();
         previousMode = controlMode;
-        
+
         // Initialize targetAl to current al value to prevent initial jump
         targetAl = al;
     }
@@ -120,7 +132,7 @@ public class AntaresController : MonoBehaviour
 
 
     }
-    
+
     void OnDisable()
     {
         controls.Move.Mover.performed -= OnMovePerformed;
@@ -186,7 +198,7 @@ public class AntaresController : MonoBehaviour
                     targetAl = al;
                 }
             }
-            
+
             // Smoothly interpolate al towards targetAl
             al = Mathf.MoveTowards(al, targetAl, alInterpolationSpeed * Time.deltaTime);
 
@@ -241,7 +253,7 @@ public class AntaresController : MonoBehaviour
         else if (controlMode == ControlMode.NeuralCircuit)
         {
             //CONTROL POR MEDIO DEL PS4, HACE PARTE DE LA SEGUNDA VERSION 
-            
+
             // Reseteo inputs
             /* go = 0f;
             bk = 0f;
@@ -288,17 +300,23 @@ public class AntaresController : MonoBehaviour
             float cos = Mathf.Cos(angle);
             float sin = Mathf.Sin(angle);
 
-            if(moveInput.y < 0){
+            if (moveInput.y < 0)
+            {
                 bk = -moveInput.y * 10f; // Retroceso
                 go = 0f; // No avance
-            }else{
+            }
+            else
+            {
                 bk = 0f; // No retroceso
                 go = moveInput.y * 10f; // Avance
             }
-            if(moveInput.x < 0){
+            if (moveInput.x < 0)
+            {
                 left = -moveInput.x * 10f; // Retroceso
                 right = 0f; // No avance
-            }else{
+            }
+            else
+            {
                 left = 0f; // No retroceso
                 right = moveInput.x * 10f; // Avance
             }
@@ -319,7 +337,7 @@ public class AntaresController : MonoBehaviour
             // Magnitud del stick (0–1), escalada a dt (0–0.5)
             analogMagnitude = Mathf.Clamp01(moveInput.magnitude);
             float dynamicDt = analogMagnitude * 0.5f;
-            
+
 
 
             // Si no se está girando, usar dt dinámico
@@ -353,22 +371,22 @@ public class AntaresController : MonoBehaviour
 
                 // 6 patas (0-5)
                 Locomotion.Update(ref neuralState.Q1[0], ref neuralState.Q2[0], ref neuralState.Q3[0], ref neuralState.E[0], ref neuralState.Ei[0], ref neuralState.LP[0], ref neuralState.L2P[0], ref neuralState.L3P[0],
-                    T[0] + neuralState.CPGs[5] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[0], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
+                    T[0] + neuralState.CPGs[5] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[0], 3f * neuralState.CPGs[8] * neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[4], ref neuralState.Q2[4], ref neuralState.Q3[4], ref neuralState.E[4], ref neuralState.Ei[4], ref neuralState.LP[4], ref neuralState.L2P[4], ref neuralState.L3P[4],
-                    T[4] - neuralState.CPGs[5] * D * neuralState.DIR3, -neuralState.CPGs[5] * D * neuralState.DIR2 + RangoOPQ1_offset[4], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
+                    T[4] - neuralState.CPGs[5] * D * neuralState.DIR3, -neuralState.CPGs[5] * D * neuralState.DIR2 + RangoOPQ1_offset[4], 3f * neuralState.CPGs[8] * neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[2], ref neuralState.Q2[2], ref neuralState.Q3[2], ref neuralState.E[2], ref neuralState.Ei[2], ref neuralState.LP[2], ref neuralState.L2P[2], ref neuralState.L3P[2],
-                    T[2] + neuralState.CPGs[5] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[2], 3f * neuralState.CPGs[8]* neuralState.MOV, dt);
+                    T[2] + neuralState.CPGs[5] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[5] * D * neuralState.DIR1 + RangoOPQ1_offset[2], 3f * neuralState.CPGs[8] * neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[3], ref neuralState.Q2[3], ref neuralState.Q3[3], ref neuralState.E[3], ref neuralState.Ei[3], ref neuralState.LP[3], ref neuralState.L2P[3], ref neuralState.L3P[3],
-                    T[3] - neuralState.CPGs[6] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[3], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
+                    T[3] - neuralState.CPGs[6] * D * (neuralState.DIR3 - 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[3], 3f * neuralState.CPGs[9] * neuralState.MOV, dt);
 
                 Locomotion.Update(ref neuralState.Q1[1], ref neuralState.Q2[1], ref neuralState.Q3[1], ref neuralState.E[1], ref neuralState.Ei[1], ref neuralState.LP[1], ref neuralState.L2P[1], ref neuralState.L3P[1],
-                    T[1] + neuralState.CPGs[6] * D * neuralState.DIR3, -neuralState.CPGs[6] * D * neuralState.DIR1 + RangoOPQ1_offset[1], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
-                
+                    T[1] + neuralState.CPGs[6] * D * neuralState.DIR3, -neuralState.CPGs[6] * D * neuralState.DIR1 + RangoOPQ1_offset[1], 3f * neuralState.CPGs[9] * neuralState.MOV, dt);
+
                 Locomotion.Update(ref neuralState.Q1[5], ref neuralState.Q2[5], ref neuralState.Q3[5], ref neuralState.E[5], ref neuralState.Ei[5], ref neuralState.LP[5], ref neuralState.L2P[5], ref neuralState.L3P[5],
-                    T[5] - neuralState.CPGs[6] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[5], 3f * neuralState.CPGs[9]* neuralState.MOV, dt);
+                    T[5] - neuralState.CPGs[6] * D * (neuralState.DIR3 + 0.1f * neuralState.DIR4), -neuralState.CPGs[6] * D * neuralState.DIR2 + RangoOPQ1_offset[5], 3f * neuralState.CPGs[9] * neuralState.MOV, dt);
 
                 // Aplicar ángulos
                 for (int i = 0; i < 6; i++)
@@ -395,19 +413,55 @@ public class AntaresController : MonoBehaviour
             // Resetear dtOffset si no hay movimiento ni giro
             if (moveInput.magnitude < 0.01f && !girandoDerecha && !girandoIzquierda)
             {
-                dt=0.6f; // resetear dt a 0.3 si no hay movimiento
+
+                dt = 0.3f; // resetear dt a 0.3 si no hay movimiento
+                
                 if (dtOffset != 0f)
                 {
                     dtOffset = 0f;
                     Debug.Log("dtOffset reseteado a 0.3 por estar quieto");
                 }
             }
-            if (dt< 0.05)
+            if (dt < 0.05)
             {
-                dt=0f;
+                dt = 0f;
             }
         }
+
+        ////////////////////////
+        /* if (Input.GetKeyDown(KeyCode.E))
+        {
+            ExportDataToCSV();
+        } */
+        //////////////////////////////
+
+        
     }
+
+    ///////////////////////////////////////////
+    void LateUpdate()
+        {
+            ArticulationBody rootBody = GetComponent<ArticulationBody>();
+            if (rootBody == null) return;
+
+            // Posición actual
+            Vector3 currentPosition = transform.position;
+            positionHistory.Add(currentPosition);
+
+            // Velocidad lineal
+            Vector3 linearVel = rootBody.velocity;
+            velocityHistory.Add(linearVel);
+
+            // Velocidad angular
+            float angularVelY = rootBody.angularVelocity.y;
+            angularVelocityHistory.Add(angularVelY);
+
+            // Distancia recorrida
+            if (positionHistory.Count > 1)
+                totalDistance += Vector3.Distance(currentPosition, lastPosition);
+            lastPosition = currentPosition;
+        }
+        ///////////////////////////////////////////////////////  
     private ArticulationDrive ConfigureDrive(float target, float stiffness = 1000f, float damping = 500f, float forceLimit = 100f)
     {
         ArticulationDrive drive = new ArticulationDrive();
@@ -429,9 +483,9 @@ public class AntaresController : MonoBehaviour
         n = 0;
     }
     private void OnGiroDerStarted(InputAction.CallbackContext ctx) => girandoDerecha = true;
-    private void OnGiroDerCanceled(InputAction.CallbackContext ctx){girandoDerecha = false; n = 0;}
+    private void OnGiroDerCanceled(InputAction.CallbackContext ctx) { girandoDerecha = false; n = 0; }
     private void OnGiroIzqStarted(InputAction.CallbackContext ctx) => girandoIzquierda = true;
-    private void OnGiroIzqCanceled(InputAction.CallbackContext ctx){girandoIzquierda = false; n = 0;}
+    private void OnGiroIzqCanceled(InputAction.CallbackContext ctx) { girandoIzquierda = false; n = 0; }
     private void OnFlechasPerformed(InputAction.CallbackContext ctx)
     {
         FlechasInput = ctx.ReadValue<Vector2>();
@@ -479,7 +533,7 @@ public class AntaresController : MonoBehaviour
                 {
                     coxaForceStr += $"DOF{dof}: {coxaJointForce[dof]:F2} ";
                 }
-                
+
                 Debug.Log($"Leg {i} Coxa - {coxaForceStr}");
             }
 
@@ -493,7 +547,7 @@ public class AntaresController : MonoBehaviour
                 {
                     femurForceStr += $"DOF{dof}: {femurJointForce[dof]:F2} ";
                 }
-                
+
                 Debug.Log($"Leg {i} Femur - {femurForceStr}");
             }
 
@@ -507,7 +561,7 @@ public class AntaresController : MonoBehaviour
                 {
                     tibiaForceStr += $"DOF{dof}: {tibiaJointForce[dof]:F2} ";
                 }
-                
+
                 Debug.Log($"Leg {i} Tibia - {tibiaForceStr}");
             }
         }
@@ -517,9 +571,9 @@ public class AntaresController : MonoBehaviour
     public float GetLegTotalForce(int legIndex)
     {
         if (legIndex < 0 || legIndex >= 6) return 0f;
-        
+
         float totalForce = 0f;
-        
+
         var coxaBody = coxas[legIndex].GetComponent<ArticulationBody>();
         if (coxaBody != null)
         {
@@ -529,7 +583,7 @@ public class AntaresController : MonoBehaviour
                 totalForce += Mathf.Abs(jointForce[dof]);
             }
         }
-            
+
         var femurBody = femurs[legIndex].GetComponent<ArticulationBody>();
         if (femurBody != null)
         {
@@ -539,7 +593,7 @@ public class AntaresController : MonoBehaviour
                 totalForce += Mathf.Abs(jointForce[dof]);
             }
         }
-            
+
         var tibiaBody = tibias[legIndex].GetComponent<ArticulationBody>();
         if (tibiaBody != null)
         {
@@ -549,7 +603,7 @@ public class AntaresController : MonoBehaviour
                 totalForce += Mathf.Abs(jointForce[dof]);
             }
         }
-            
+
         return totalForce;
     }
 
@@ -557,7 +611,7 @@ public class AntaresController : MonoBehaviour
     public float GetJointTorque(ArticulationBody joint)
     {
         if (joint == null) return 0f;
-        
+
         var jointForce = joint.jointForce;
         if (jointForce.dofCount > 0)
         {
@@ -589,4 +643,64 @@ public class AntaresController : MonoBehaviour
         return moveInput.magnitude > 0.1f || girandoDerecha || girandoIzquierda;
     }
 
+
+    /// /////////////////////////
+    float CalculateLateralDeviation()
+    {
+        if (positionHistory.Count < 2) return 0f;
+
+        Vector3 start = positionHistory[0];
+        Vector3 end = positionHistory[^1];
+        Vector3 direction = (end - start).normalized;
+
+        float sum = 0f;
+        foreach (var point in positionHistory)
+        {
+            Vector3 projected = Vector3.Project(point - start, direction) + start;
+            float lateralDeviation = Vector3.Distance(projected, point);
+
+            sum += lateralDeviation;
+        }
+
+        return sum / positionHistory.Count;
+    }
+    ////////////////////////////////
+
+
+    ////////////////////////////////
+    void ExportDataToCSV()
+    {
+        string path = Application.dataPath + "/HexapodMetrics.csv";
+        StringBuilder csvContent = new StringBuilder();
+
+        // Encabezado
+        csvContent.AppendLine("Time;PosX;PosZ;VelX;VelZ;AngularVelocityY;LateralDeviation;Distance");
+
+        int count = Mathf.Min(positionHistory.Count, velocityHistory.Count, angularVelocityHistory.Count);
+
+        for (int i = 0; i < count; i++)
+        {
+            float t = i * Time.fixedDeltaTime;
+            Vector3 pos = positionHistory[i];
+            Vector3 vel = velocityHistory[i];
+            float angVel = angularVelocityHistory[i];
+
+            float deviation = CalculateLateralDeviation();
+
+            csvContent.AppendLine($"{t:F2};{pos.x:F3};{pos.z:F3};{vel.x:F3};{vel.z:F3};{angVel:F3};{deviation:F3};{totalDistance:F3}");
+        }
+
+        File.WriteAllText(path, csvContent.ToString());
+        Debug.Log("Datos exportados a: " + path);
+    }
+    /////////////////////////////////
+    
+    void OnApplicationQuit()
+    {
+        ExportDataToCSV();
+    }
+
 }
+
+
+
