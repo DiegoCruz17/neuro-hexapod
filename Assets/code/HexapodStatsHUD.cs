@@ -11,7 +11,7 @@ public class HexapodStatsHUD : MonoBehaviour
     [SerializeField] private Canvas hudCanvas;
     
     [Header("UI Settings")]
-    [SerializeField] private bool showHUD = true;
+    [SerializeField] private bool showHUD = false;
     [SerializeField] private KeyCode toggleKey = KeyCode.Tab;
     [SerializeField] private float updateFrequency = 30f; // Updates per second
     
@@ -32,9 +32,9 @@ public class HexapodStatsHUD : MonoBehaviour
     private GraphRenderer sensorGraphRenderer;
     
     // Data Storage for Graphs
-    private Queue<float>[] legAngleData = new Queue<float>[18]; // 6 legs * 3 joints
-    private Queue<float>[] physicsData = new Queue<float>[12]; // Position, rotation, velocity, angular velocity
-    private Queue<float>[] sensorData = new Queue<float>[8]; // LIDAR sectors
+    private Queue<float>[] legAngleData = Enumerable.Repeat(new Queue<float>(new float[] { 0f }), 18).ToArray(); // 6 legs * 3 joints, filled with 0s
+    private Queue<float>[] physicsData = Enumerable.Repeat(new Queue<float>(new float[] { 0f }), 12).ToArray(); // Position, rotation, velocity, angular velocity, filled with 0s
+    private Queue<float>[] sensorData = Enumerable.Repeat(new Queue<float>(new float[] { 0f }), 8).ToArray(); // LIDAR sectors, filled with 0s
     
     private float lastUpdateTime;
     private int maxDataPoints = 200; // Maximum points to keep in history
@@ -138,6 +138,9 @@ public class HexapodStatsHUD : MonoBehaviour
         
         // Add helpful info section at the top
         CreateInfoSection();
+        
+        // Set initial HUD visibility
+        hudContainer.SetActive(showHUD);
     }
 
     private void CreateInfoSection()
@@ -596,6 +599,7 @@ public class HexapodStatsHUD : MonoBehaviour
         // Update angle graphs
         if (sections["LegAngles"].IsExpanded && angleGraphRenderer != null)
         {
+            int validLines = 0;
             for (int i = 0; i < legAngleData.Length; i++)
             {
                 if (legAngleData[i].Count > 0)
@@ -603,7 +607,8 @@ public class HexapodStatsHUD : MonoBehaviour
                     int legIndex = i / 3;
                     int jointIndex = i % 3;
                     Color color = Color.Lerp(legColors[legIndex], jointColors[jointIndex], 0.5f);
-                    angleGraphRenderer.UpdateGraph(i, legAngleData[i].ToArray(), color);
+                    angleGraphRenderer.UpdateGraph(validLines, legAngleData[i].ToArray(), color);
+                    validLines++;
                 }
             }
         }
@@ -611,12 +616,16 @@ public class HexapodStatsHUD : MonoBehaviour
         // Update physics graphs
         if (sections["Physics"].IsExpanded && physicsGraphRenderer != null)
         {
-            Color[] colors = {Color.red, Color.green, Color.blue, Color.yellow, Color.cyan, Color.magenta};
+            Color[] colors = {Color.red, Color.green, Color.blue, Color.yellow, Color.cyan, Color.magenta, 
+                            Color.white, new Color(1f, 0.5f, 0f), new Color(0.5f, 1f, 0f), 
+                            new Color(1f, 0f, 0.5f), new Color(0f, 1f, 0.5f), new Color(0.5f, 0f, 1f)};
+            int validLines = 0;
             for (int i = 0; i < physicsData.Length; i++)
             {
                 if (physicsData[i].Count > 0)
                 {
-                    physicsGraphRenderer.UpdateGraph(i, physicsData[i].ToArray(), colors[i % colors.Length]);
+                    physicsGraphRenderer.UpdateGraph(validLines, physicsData[i].ToArray(), colors[i % colors.Length]);
+                    validLines++;
                 }
             }
         }
@@ -624,12 +633,14 @@ public class HexapodStatsHUD : MonoBehaviour
         // Update sensor graphs
         if (sections["Sensors"].IsExpanded && sensorGraphRenderer != null)
         {
+            int validLines = 0;
             for (int i = 0; i < sensorData.Length; i++)
             {
                 if (sensorData[i].Count > 0)
                 {
                     Color color = Color.HSVToRGB((float)i / 8f, 0.8f, 1f);
-                    sensorGraphRenderer.UpdateGraph(i, sensorData[i].ToArray(), color);
+                    sensorGraphRenderer.UpdateGraph(validLines, sensorData[i].ToArray(), color);
+                    validLines++;
                 }
             }
         }
@@ -733,8 +744,8 @@ public class ExpandableSection : MonoBehaviour
         RectTransform contentRect = contentPanel.AddComponent<RectTransform>();
         contentRect.anchorMin = new Vector2(0, 0);
         contentRect.anchorMax = new Vector2(1, 1);
-        contentRect.sizeDelta = new Vector2(-10, -40);
-        contentRect.anchoredPosition = new Vector2(0, -5);
+        contentRect.sizeDelta = new Vector2(-5, -35);  // Reduced margins for more space
+        contentRect.anchoredPosition = new Vector2(0, -2.5f);  // Adjusted position
         
         contentText = contentPanel.AddComponent<Text>();
         contentText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -848,8 +859,8 @@ public class GraphRenderer : MonoBehaviour
         imageObj.transform.SetParent(transform, false);
         
         RectTransform imageRect = imageObj.AddComponent<RectTransform>();
-        imageRect.anchorMin = new Vector2(0, 0);
-        imageRect.anchorMax = new Vector2(1, 0.7f);
+        imageRect.anchorMin = new Vector2(0.02f, 0.02f);  // Small margin from edges
+        imageRect.anchorMax = new Vector2(0.98f, 0.98f);  // Fill almost entire space
         imageRect.sizeDelta = Vector2.zero;
         imageRect.anchoredPosition = Vector2.zero;
         
@@ -861,22 +872,36 @@ public class GraphRenderer : MonoBehaviour
     {
         if (data.Length < 2) return;
         
+        // Clear graph background before drawing (only for the first line of each update cycle)
+        if (lineIndex == 0)
+        {
+            ClearGraph();
+        }
+        
         // Find min/max for scaling
         float min = data.Min();
         float max = data.Max();
         float range = max - min;
         if (range == 0) range = 1;
         
-        // Draw line
-        for (int i = 1; i < data.Length && i < graphWidth; i++)
+        // Scale data points to fill entire graph width
+        float xScale = (float)(graphWidth - 1) / (data.Length - 1);
+        
+        // Draw line scaled to full width
+        for (int i = 1; i < data.Length; i++)
         {
             float y1 = (data[i-1] - min) / range;
             float y2 = (data[i] - min) / range;
             
-            int x1 = i - 1;
-            int x2 = i;
+            // Scale X positions to fill entire width
+            int x1 = Mathf.RoundToInt((i - 1) * xScale);
+            int x2 = Mathf.RoundToInt(i * xScale);
             
-            DrawLine(x1, (int)(y1 * graphHeight), x2, (int)(y2 * graphHeight), color);
+            // Scale Y positions to fill height with small margins
+            int scaledY1 = Mathf.RoundToInt(y1 * (graphHeight - 4)) + 2;
+            int scaledY2 = Mathf.RoundToInt(y2 * (graphHeight - 4)) + 2;
+            
+            DrawLine(x1, scaledY1, x2, scaledY2, color);
         }
         
         graphTexture.Apply();
@@ -884,6 +909,12 @@ public class GraphRenderer : MonoBehaviour
     
     private void DrawLine(int x1, int y1, int x2, int y2, Color color)
     {
+        // Clamp coordinates to texture bounds
+        x1 = Mathf.Clamp(x1, 0, graphWidth - 1);
+        x2 = Mathf.Clamp(x2, 0, graphWidth - 1);
+        y1 = Mathf.Clamp(y1, 0, graphHeight - 1);
+        y2 = Mathf.Clamp(y2, 0, graphHeight - 1);
+        
         // Simple line drawing using Bresenham's algorithm
         int dx = Mathf.Abs(x2 - x1);
         int dy = Mathf.Abs(y2 - y1);
@@ -893,8 +924,17 @@ public class GraphRenderer : MonoBehaviour
         
         while (true)
         {
+            // Draw main pixel
             if (x1 >= 0 && x1 < graphWidth && y1 >= 0 && y1 < graphHeight)
+            {
                 graphTexture.SetPixel(x1, y1, color);
+                
+                // Draw thicker line by adding adjacent pixels
+                if (y1 + 1 < graphHeight)
+                    graphTexture.SetPixel(x1, y1 + 1, color);
+                if (x1 + 1 < graphWidth)
+                    graphTexture.SetPixel(x1 + 1, y1, color);
+            }
             
             if (x1 == x2 && y1 == y2) break;
             
@@ -915,11 +955,17 @@ public class GraphRenderer : MonoBehaviour
     private void ClearGraph()
     {
         Color[] pixels = new Color[graphWidth * graphHeight];
+        Color backgroundColor = new Color(0.1f, 0.1f, 0.15f, 1f);
         for (int i = 0; i < pixels.Length; i++)
         {
-            pixels[i] = new Color(0.1f, 0.1f, 0.15f, 1f);
+            pixels[i] = backgroundColor;
         }
         graphTexture.SetPixels(pixels);
         graphTexture.Apply();
+    }
+    
+    public void ClearGraphExplicitly()
+    {
+        ClearGraph();
     }
 }
