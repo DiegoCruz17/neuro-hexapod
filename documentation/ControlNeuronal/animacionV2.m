@@ -22,10 +22,10 @@ offsets_Q1_geo = [0, 0, 0,180, 180, 180];
 Eres2 = zeros(N, 18);
 DIR = [0 0 0 0];
 FW = 0; BW = 0; TL = 0; TR = 0; L = 0; R = 0; MOV = 0;
-go= 0; dt = 1; bk = 0; spinL = 0; spinR = 0; left = 0; right = 0;
+go= 10; dt = 1; bk = 0; spinL = 0; spinR = 0; left = 0; right = 0;
 
-D = 2;   %tamaño de paso
-T = 100;  % distancia horizontal 
+D = 4;   %tamaño de paso
+T = [100 120 100 100 120 100];  % distancia horizontal 
 for i = 1:N
     [DIR(1), DIR(2), DIR(3), DIR(4), FW, BW, TL, TR, L, R, MOV] = ...
     Estimulos(DIR(1), DIR(2), DIR(3), DIR(4), FW, BW, TL, TR, L, R, MOV, go, bk, spinL, spinR, left, right, dt);
@@ -34,17 +34,17 @@ for i = 1:N
         CPG(cpg(1),cpg(2),cpg(3),cpg(4),cpg(5),cpg(6),cpg(7),cpg(8),cpg(9),cpg(10), 1, paramOsc);
 
     % 6 patas                                                       (Q1,    Q2,     Q3,          E,   ,Ei ,LP,     L2P,    L3P,    T,                           CPGXY,                                 CPGZ,        dt)
-    [Q1(1), Q2(1), Q3(1), E(1),Ei(1), LP(1), L2P(1), L3P(1)] = LOCOMOTION(Q1(1), Q2(1), Q3(1), E(1),Ei(1), LP(1), L2P(1), L3P(1), T +cpg(6)*D*(DIR(3)-0.1*DIR(4)), cpg(6)*D*DIR(1) +RangoOPQ1_offset(1),   3*cpg(9)*MOV , 1);
+    [Q1(1), Q2(1), Q3(1), E(1),Ei(1), LP(1), L2P(1), L3P(1)] = LOCOMOTION(Q1(1), Q2(1), Q3(1), E(1),Ei(1), LP(1), L2P(1), L3P(1), T(1) +cpg(6)*D*(DIR(3)-0.1*DIR(4)), cpg(6)*D*DIR(1) +RangoOPQ1_offset(1),   3*cpg(9)*MOV , 1);
     
-    [Q1(3), Q2(3), Q3(3), E(3),Ei(3), LP(3), L2P(3), L3P(3)] = LOCOMOTION(Q1(3), Q2(3), Q3(3), E(3),Ei(3), LP(3), L2P(3), L3P(3), T +cpg(6)*D*(DIR(3)+0.1*DIR(4)), cpg(6)*D*DIR(1) + RangoOPQ1_offset(3), 3*cpg(9)*MOV, 1);
+    [Q1(3), Q2(3), Q3(3), E(3),Ei(3), LP(3), L2P(3), L3P(3)] = LOCOMOTION(Q1(3), Q2(3), Q3(3), E(3),Ei(3), LP(3), L2P(3), L3P(3), T(3) +cpg(6)*D*(DIR(3)+0.1*DIR(4)), cpg(6)*D*DIR(1) + RangoOPQ1_offset(3), 3*cpg(9)*MOV, 1);
     
-    [Q1(2), Q2(2), Q3(2), E(2),Ei(2), LP(2), L2P(2), L3P(2)] = LOCOMOTION(Q1(2), Q2(2), Q3(2), E(2),Ei(2), LP(2), L2P(2), L3P(2), T +cpg(7)*D*DIR(3)        , cpg(7)*D*DIR(1) + RangoOPQ1_offset(2), 3*cpg(10)*MOV, 1);
+    [Q1(2), Q2(2), Q3(2), E(2),Ei(2), LP(2), L2P(2), L3P(2)] = LOCOMOTION(Q1(2), Q2(2), Q3(2), E(2),Ei(2), LP(2), L2P(2), L3P(2), T(2) +cpg(7)*D*DIR(3)        , cpg(7)*D*DIR(1) + RangoOPQ1_offset(2), 3*cpg(10)*MOV, 1);
     
-    [Q1(5), Q2(5), Q3(5), E(5),Ei(5), LP(5), L2P(5), L3P(5)] = LOCOMOTION(Q1(5), Q2(5), Q3(5), E(5),Ei(5), LP(5), L2P(5), L3P(5), T -cpg(6)*D*DIR(3)        , -cpg(6)*D*DIR(2) + RangoOPQ1_offset(5), 3*cpg(9)*MOV, 1);
+    [Q1(5), Q2(5), Q3(5), E(5),Ei(5), LP(5), L2P(5), L3P(5)] = LOCOMOTION(Q1(5), Q2(5), Q3(5), E(5),Ei(5), LP(5), L2P(5), L3P(5), T(5) -cpg(6)*D*DIR(3)        , -cpg(6)*D*DIR(2) + RangoOPQ1_offset(5), 3*cpg(9)*MOV, 1);
     
-    [Q1(4), Q2(4), Q3(4), E(4),Ei(4), LP(4), L2P(4), L3P(4)] = LOCOMOTION(Q1(4), Q2(4), Q3(4), E(4),Ei(4), LP(4), L2P(4), L3P(4), T -cpg(7)*D*(DIR(3)-0.1*DIR(4)) ,-cpg(7)*D*DIR(2) + RangoOPQ1_offset(4), 3*cpg(10)*MOV, 1);
+    [Q1(4), Q2(4), Q3(4), E(4),Ei(4), LP(4), L2P(4), L3P(4)] = LOCOMOTION(Q1(4), Q2(4), Q3(4), E(4),Ei(4), LP(4), L2P(4), L3P(4), T(4) -cpg(7)*D*(DIR(3)-0.1*DIR(4)) ,-cpg(7)*D*DIR(2) + RangoOPQ1_offset(4), 3*cpg(10)*MOV, 1);
     
-    [Q1(6), Q2(6), Q3(6), E(6),Ei(6), LP(6), L2P(6), L3P(6)] = LOCOMOTION(Q1(6), Q2(6), Q3(6), E(6),Ei(6), LP(6), L2P(6), L3P(6), T -cpg(7)*D*(DIR(3)+0.1*DIR(4)), -cpg(7)*D*DIR(2) + RangoOPQ1_offset(6), 3*cpg(10)*MOV, 1);
+    [Q1(6), Q2(6), Q3(6), E(6),Ei(6), LP(6), L2P(6), L3P(6)] = LOCOMOTION(Q1(6), Q2(6), Q3(6), E(6),Ei(6), LP(6), L2P(6), L3P(6), T(6) -cpg(7)*D*(DIR(3)+0.1*DIR(4)), -cpg(7)*D*DIR(2) + RangoOPQ1_offset(6), 3*cpg(10)*MOV, 1);
 
     Eres2(i,:) = [Q1 Q2 Q3];
 end
@@ -90,7 +90,7 @@ for i = 1:N
         trail{leg}(:, end+1) = P3;
         plot3(trail{leg}(1,:), trail{leg}(2,:), trail{leg}(3,:), 'k:', 'LineWidth', 1);
     end
-    pause(0.00001); drawnow;
+    pause(0.001); drawnow;
 end
 
 %% ========= FUNCIONES AUXILIARES =========
