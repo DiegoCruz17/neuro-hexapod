@@ -343,7 +343,7 @@ public class AntaresController : MonoBehaviour
             // Si no se está girando, usar dt dinámico
             if (!girandoDerecha && !girandoIzquierda)
             {
-                dt = dynamicDt;
+                dt =0.1f+ dynamicDt;
             }
             if (girandoDerecha)
             {
@@ -413,7 +413,9 @@ public class AntaresController : MonoBehaviour
             // Resetear dtOffset si no hay movimiento ni giro
             if (moveInput.magnitude < 0.01f && !girandoDerecha && !girandoIzquierda)
             {
+
                 dt = 0.3f; // resetear dt a 0.3 si no hay movimiento
+                
                 if (dtOffset != 0f)
                 {
                     dtOffset = 0f;
