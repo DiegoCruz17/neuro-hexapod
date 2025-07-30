@@ -24,7 +24,7 @@ ch = zeros(N,1);
 Eres2 = zeros(N, 18);
 DIR = [0 0 0 0];
 FW = 0; BW = 0; TL = 0; TR = 0; L = 0; R = 0; MOV = 0;
-go= 0; dt = 1; bk = 0; spinL = 0; spinR = 0; left = 10; right = 0;
+go= 0; dt = 1; bk = 10; spinL = 0; spinR = 0; left = 0; right = 10;
 
 D = 3;   %tamaño de paso
 T = [90 90 90 90 90 90];  % distancia horizontal 
@@ -89,10 +89,29 @@ video = VideoWriter('hexapod_animacion.mp4','MPEG-4'); % nombre del archivo
 video.FrameRate = 30;   % FPS (puedes ajustar)
 open(video);
 
+% Calcular cuántas iteraciones por momento
+total_iters = N - 1500 + 1;
+step = floor(total_iters / 5); % Dividir en 5 momentos
+
 
 for i = 1500:N
     if ~ishandle(f), break; end
     cla(ax); draw_custom_body_shape(base_height);
+    
+    % Cambiar perspectiva según el momento
+    relative_i = i - 1500 + 1;
+    if relative_i <= step
+        view(3); % Isométrico
+    elseif relative_i <= 2*step
+        view(0, 90); % XY (vista desde arriba)
+    elseif relative_i <= 3*step
+        view(0, 0); % ZY
+    elseif relative_i <= 4*step
+        view(90, 0); % ZX
+    else
+        view(3); % Isométrico de nuevo
+    end
+
 
     % Dibujar robot
     for leg = 1:6
@@ -139,7 +158,7 @@ for i = 1500:N
     frame = getframe(f);
     writeVideo(video, frame);
 
-    pause(0.00001); drawnow;
+    pause(0.001); drawnow;
 end
 %% Cerrar el archivo de video
 close(video);
