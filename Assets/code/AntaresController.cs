@@ -20,7 +20,7 @@ public class AntaresController : MonoBehaviour
     public float L1 = 74.28f;
     public float L2 = 140.85f;
 
-    public float d = 40f, al = 60f, n = 20f, w = 1f, rs = 0f, ra = 0f, c = 0f;
+    public float d = 40f, al = 60f, n = 20f, w = -1f, rs = 0f, ra = 1f, c = 0f;
     public float k = 0f;
 
     public float hb = -20f;
@@ -68,12 +68,17 @@ public class AntaresController : MonoBehaviour
     //////////////////////////////
     private List<Vector3> positionHistory = new List<Vector3>();
     private List<Vector3> velocityHistory = new List<Vector3>();
-    private List<float> angularVelocityHistory = new List<float>();
+    private List<Vector3> angularVelocityHistory = new List<Vector3>();
     private float totalDistance = 0f;
     private Vector3 lastPosition;
     /// <summary>
     /// //////////////////////////////////
     /// </summary>
+    private float dataCaptureStartTime;
+    private bool isCapturingData = false;
+    private bool hasExportedData = false;
+    private float captureDuration = 20f;
+
 
     void Start()
     {
@@ -114,6 +119,10 @@ public class AntaresController : MonoBehaviour
 
         // Initialize targetAl to current al value to prevent initial jump
         targetAl = al;
+        dataCaptureStartTime = Time.time;
+        isCapturingData = true;
+        hasExportedData = false;
+
     }
     void OnEnable()
     {
@@ -166,12 +175,12 @@ public class AntaresController : MonoBehaviour
             }
             else
             {
-                ra = 0f;
-                c = 0f;
-                w = 1f;
-
                 if (useGamepadControl)
                 {
+                    ra = 0f;
+                    c = 0f;
+                    w = 1f;
+
                     float magnitude = moveInput.magnitude;
                     float angleRad = Mathf.Atan2(-moveInput.x, moveInput.y);
                     if (angleRad < 0)
@@ -193,9 +202,10 @@ public class AntaresController : MonoBehaviour
                 }
                 else
                 {
-                    // Control manual desde el Inspector: d, al, rs ya están definidos en el editor
-                    // targetAl uses the current al value from the inspector
+                    // MODO MANUAL — deja que el usuario defina todo desde el Inspector
                     targetAl = al;
+                    // NO tocar: w, ra, c, d, rs
+                    // Son definidos manualmente
                 }
             }
 
@@ -263,109 +273,93 @@ public class AntaresController : MonoBehaviour
             spinR = 0f; */
 
             // Leer input del analógico
-            float joystickX = moveInput.x;
-            float joystickY = moveInput.y;
-
-            // Umbral mínimo para evitar ruidos pequeños
-            float threshold = 0.2f;
-
-            if (joystickY > threshold)
-                go = joystickY;
-            else if (joystickY < -threshold)
-                bk = -joystickY;
-
-            if (joystickX > threshold)
-                right = joystickX;
-            else if (joystickX < -threshold)
-                left = -joystickX;
-
-            // Leer spin con L2 y R2
-            float l2 = controls.Move.GiroIzq.ReadValue<float>();
-            float r2 = controls.Move.GiroDer.ReadValue<float>();
-
-            if (l2 > 0.2f)
-                spinL = l2;
-            if (r2 > 0.2f)
-                spinR = r2;
-            //////////////////////////////////////////////////////
-            //go = 0; bk = 0; left = 0; right = 0;
-            float D = 4;
-
-
-            // Calcular dirección del analógico
-            float angle = Mathf.Atan2(moveInput.x, moveInput.y); // Y es adelante
-            if (angle < 0) angle += 2 * Mathf.PI; // Aseguramos 0–2π
-
-            // Normalizar ángulo en rangos direccionales (tipo brújula)
-            float cos = Mathf.Cos(angle);
-            float sin = Mathf.Sin(angle);
-
-            if (moveInput.y < 0)
+            if (useGamepadControl)
             {
-                bk = -moveInput.y * 10f; // Retroceso
-                go = 0f; // No avance
-            }
-            else
-            {
-                bk = 0f; // No retroceso
-                go = moveInput.y * 10f; // Avance
-            }
-            if (moveInput.x < 0)
-            {
-                left = -moveInput.x * 10f; // Retroceso
-                right = 0f; // No avance
-            }
-            else
-            {
-                left = 0f; // No retroceso
-                right = moveInput.x * 10f; // Avance
-            }
+                // Leer input del analógico
+                float joystickX = moveInput.x;
+                float joystickY = moveInput.y;
 
+                float threshold = 0.2f;
 
-            // Mapeo direccional proporcional (0–10)/
-            /*
-            go = Mathf.Clamp01(cos) * 10f;
-            bk = Mathf.Clamp01(-cos) * 10f;
-            right = Mathf.Clamp01(sin) * 10f;
-            left = Mathf.Clamp01(-sin) * 10f;
-            */
+                if (joystickY > threshold)
+                    go = joystickY;
+                else if (joystickY < -threshold)
+                    bk = -joystickY;
 
-            // Aplicar deadzone: go y bk deben ser mayores a 3 para activarse
-            if (go < 3f) go = 0f;
-            if (bk < 3f) bk = 0f;
+                if (joystickX > threshold)
+                    right = joystickX;
+                else if (joystickX < -threshold)
+                    left = -joystickX;
 
-            // Magnitud del stick (0–1), escalada a dt (0–0.5)
-            analogMagnitude = Mathf.Clamp01(moveInput.magnitude);
-            float dynamicDt = analogMagnitude * 0.5f;
+                float l2 = controls.Move.GiroIzq.ReadValue<float>();
+                float r2 = controls.Move.GiroDer.ReadValue<float>();
 
+                if (l2 > 0.2f)
+                    spinL = l2;
+                if (r2 > 0.2f)
+                    spinR = r2;
 
+                float angle = Mathf.Atan2(moveInput.x, moveInput.y);
+                if (angle < 0) angle += 2 * Mathf.PI;
 
-            // Si no se está girando, usar dt dinámico
-            if (!girandoDerecha && !girandoIzquierda)
-            {
-                dt =0.1f+ dynamicDt;
-            }
-            if (girandoDerecha)
-            {
-                spinR = 10f;
-                spinL = 0f;
-                dt = 0.5f;
-            }
-            else if (girandoIzquierda)
-            {
-                spinL = 10f;
-                spinR = 0f;
-                dt = 0.5f;
-            }
-            else
-            {
-                spinL = 0f;
-                spinR = 0f;
+                float cos = Mathf.Cos(angle);
+                float sin = Mathf.Sin(angle);
+
+                if (moveInput.y < 0)
+                {
+                    bk = -moveInput.y * 10f;
+                    go = 0f;
+                }
+                else
+                {
+                    bk = 0f;
+                    go = moveInput.y * 10f;
+                }
+                if (moveInput.x < 0)
+                {
+                    left = -moveInput.x * 10f;
+                    right = 0f;
+                }
+                else
+                {
+                    left = 0f;
+                    right = moveInput.x * 10f;
+                }
+
+                if (go < 3f) go = 0f;
+                if (bk < 3f) bk = 0f;
+
+                analogMagnitude = Mathf.Clamp01(moveInput.magnitude);
+                float dynamicDt = analogMagnitude * 0.5f;
+
+                if (!girandoDerecha && !girandoIzquierda)
+                {
+                    dt = 0.1f + dynamicDt;
+                }
+                if (girandoDerecha)
+                {
+                    spinR = 10f;
+                    spinL = 0f;
+                    dt = 0.5f;
+                }
+                else if (girandoIzquierda)
+                {
+                    spinL = 10f;
+                    spinR = 0f;
+                    dt = 0.5f;
+                }
+                else
+                {
+                    spinL = 0f;
+                    spinR = 0f;
+                }
+
+                dt = Mathf.Clamp(dt + dtOffset, 0f, 0.9f);
             }
 
-            dt = Mathf.Clamp(dt + dtOffset, 0f, 0.9f);
             for (int j = 0; j < 50; j++)
             {
+                float D = 4f;
                 Stimuli.Update(neuralState, go, bk, spinL, spinR, left, right, dt);
                 CPG.Update(neuralState.CPGs, dt);
 
@@ -440,27 +434,36 @@ public class AntaresController : MonoBehaviour
 
     ///////////////////////////////////////////
     void LateUpdate()
+    {
+        if (!isCapturingData) return;
+
+        float elapsed = Time.time - dataCaptureStartTime;
+        if (elapsed <= captureDuration)
         {
             ArticulationBody rootBody = GetComponent<ArticulationBody>();
             if (rootBody == null) return;
 
-            // Posición actual
             Vector3 currentPosition = transform.position;
             positionHistory.Add(currentPosition);
 
-            // Velocidad lineal
             Vector3 linearVel = rootBody.velocity;
             velocityHistory.Add(linearVel);
 
-            // Velocidad angular
-            float angularVelY = rootBody.angularVelocity.y;
-            angularVelocityHistory.Add(angularVelY);
+            angularVelocityHistory.Add(rootBody.angularVelocity);
 
-            // Distancia recorrida
             if (positionHistory.Count > 1)
                 totalDistance += Vector3.Distance(currentPosition, lastPosition);
+
             lastPosition = currentPosition;
         }
+        else if (!hasExportedData)
+        {
+            ExportDataToCSV();
+            isCapturingData = false;
+            hasExportedData = true;
+        }
+    }
+
         ///////////////////////////////////////////////////////  
     private ArticulationDrive ConfigureDrive(float target, float stiffness = 1000f, float damping = 500f, float forceLimit = 100f)
     {
@@ -674,7 +677,7 @@ public class AntaresController : MonoBehaviour
         StringBuilder csvContent = new StringBuilder();
 
         // Encabezado
-        csvContent.AppendLine("Time;PosX;PosZ;VelX;VelZ;AngularVelocityY;LateralDeviation;Distance");
+        csvContent.AppendLine("Time;PosX;PosY;PosZ;VelX;VelY;VelZ;AngVelX;AngVelY;AngVelZ;LateralDeviation;Distance");
 
         int count = Mathf.Min(positionHistory.Count, velocityHistory.Count, angularVelocityHistory.Count);
 
@@ -683,11 +686,10 @@ public class AntaresController : MonoBehaviour
             float t = i * Time.fixedDeltaTime;
             Vector3 pos = positionHistory[i];
             Vector3 vel = velocityHistory[i];
-            float angVel = angularVelocityHistory[i];
-
+            Vector3 angVel = angularVelocityHistory[i];
             float deviation = CalculateLateralDeviation();
+            csvContent.AppendLine($"{t:F2};{pos.x:F3};{pos.y:F3};{pos.z:F3};{vel.x:F3};{vel.y:F3};{vel.z:F3};{angVel.x:F3};{angVel.y:F3};{angVel.z:F3};{deviation:F3};{totalDistance:F3}");
 
-            csvContent.AppendLine($"{t:F2};{pos.x:F3};{pos.z:F3};{vel.x:F3};{vel.z:F3};{angVel:F3};{deviation:F3};{totalDistance:F3}");
         }
 
         File.WriteAllText(path, csvContent.ToString());
