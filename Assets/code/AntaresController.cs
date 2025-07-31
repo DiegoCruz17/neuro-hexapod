@@ -69,6 +69,7 @@ public class AntaresController : MonoBehaviour
     private List<Vector3> positionHistory = new List<Vector3>();
     private List<Vector3> velocityHistory = new List<Vector3>();
     private List<Vector3> angularVelocityHistory = new List<Vector3>();
+    private List<float[]> jointTorquesHistory = new List<float[]>();
     private float totalDistance = 0f;
     private Vector3 lastPosition;
     /// <summary>
@@ -451,6 +452,39 @@ public class AntaresController : MonoBehaviour
 
             angularVelocityHistory.Add(rootBody.angularVelocity);
 
+            // Recolectar torques de las 18 articulaciones (6 patas x 3 articulaciones cada una)
+            float[] jointTorques = new float[18];
+            int torqueIndex = 0;
+            
+            for (int leg = 0; leg < 6; leg++)
+            {
+                // Coxa (índices 0-5)
+                var coxaBody = coxas[leg].GetComponent<ArticulationBody>();
+                if (coxaBody != null && coxaBody.jointForce.dofCount > 0)
+                {
+                    jointTorques[torqueIndex] = coxaBody.jointForce[0];
+                }
+                torqueIndex++;
+
+                // Femur (índices 6-11)
+                var femurBody = femurs[leg].GetComponent<ArticulationBody>();
+                if (femurBody != null && femurBody.jointForce.dofCount > 0)
+                {
+                    jointTorques[torqueIndex] = femurBody.jointForce[0];
+                }
+                torqueIndex++;
+
+                // Tibia (índices 12-17)
+                var tibiaBody = tibias[leg].GetComponent<ArticulationBody>();
+                if (tibiaBody != null && tibiaBody.jointForce.dofCount > 0)
+                {
+                    jointTorques[torqueIndex] = tibiaBody.jointForce[0];
+                }
+                torqueIndex++;
+            }
+            
+            jointTorquesHistory.Add(jointTorques);
+
             if (positionHistory.Count > 1)
                 totalDistance += Vector3.Distance(currentPosition, lastPosition);
 
@@ -676,10 +710,18 @@ public class AntaresController : MonoBehaviour
         string path = Application.dataPath + "/HexapodMetrics.csv";
         StringBuilder csvContent = new StringBuilder();
 
-        // Encabezado
-        csvContent.AppendLine("Time;PosX;PosY;PosZ;VelX;VelY;VelZ;AngVelX;AngVelY;AngVelZ;LateralDeviation;Distance");
+        // Encabezado con torques de las 18 articulaciones
+        string header = "Time;PosX;PosY;PosZ;VelX;VelY;VelZ;AngVelX;AngVelY;AngVelZ;LateralDeviation;Distance";
+        
+        // Agregar encabezados para los torques de las 18 articulaciones
+        for (int leg = 0; leg < 6; leg++)
+        {
+            header += $";Leg{leg}_Coxa_Torque;Leg{leg}_Femur_Torque;Leg{leg}_Tibia_Torque";
+        }
+        
+        csvContent.AppendLine(header);
 
-        int count = Mathf.Min(positionHistory.Count, velocityHistory.Count, angularVelocityHistory.Count);
+        int count = Mathf.Min(positionHistory.Count, velocityHistory.Count, angularVelocityHistory.Count, jointTorquesHistory.Count);
 
         for (int i = 0; i < count; i++)
         {
@@ -688,8 +730,20 @@ public class AntaresController : MonoBehaviour
             Vector3 vel = velocityHistory[i];
             Vector3 angVel = angularVelocityHistory[i];
             float deviation = CalculateLateralDeviation();
-            csvContent.AppendLine($"{t:F2};{pos.x:F3};{pos.y:F3};{pos.z:F3};{vel.x:F3};{vel.y:F3};{vel.z:F3};{angVel.x:F3};{angVel.y:F3};{angVel.z:F3};{deviation:F3};{totalDistance:F3}");
-
+            
+            string line = $"{t:F2};{pos.x:F3};{pos.y:F3};{pos.z:F3};{vel.x:F3};{vel.y:F3};{vel.z:F3};{angVel.x:F3};{angVel.y:F3};{angVel.z:F3};{deviation:F3};{totalDistance:F3}";
+            
+            // Agregar datos de torques
+            if (i < jointTorquesHistory.Count)
+            {
+                float[] torques = jointTorquesHistory[i];
+                for (int j = 0; j < 18; j++)
+                {
+                    line += $";{torques[j]:F3}";
+                }
+            }
+            
+            csvContent.AppendLine(line);
         }
 
         File.WriteAllText(path, csvContent.ToString());
