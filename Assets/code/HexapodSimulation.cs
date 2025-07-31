@@ -66,8 +66,8 @@ public class HexapodSimulation : MonoBehaviour
                               3f * state.CPGs[9], dt);
 
             // Debug cada 100 pasos
-            if (step % 100 == 0)
-                Debug.Log($"[Paso {step}] CPG6: {state.CPGs[5]:F3}, DIR1: {state.DIR1:F3}, Q1_1: {state.Q1[0]:F1}");
+            //if (step % 100 == 0)
+               // Debug.Log($"[Paso {step}] CPG6: {state.CPGs[5]:F3}, DIR1: {state.DIR1:F3}, Q1_1: {state.Q1[0]:F1}");
         }
     }
 }

@@ -217,7 +217,7 @@ public class AntaresController : MonoBehaviour
             previousD = d;
 
             // Debug opcional
-            Debug.Log($"Input: {moveInput}, D: {d:F2}, Rs: {rs:F2} rad");
+            //Debug.Log($"Input: {moveInput}, D: {d:F2}, Rs: {rs:F2} rad");
 
             var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k, hb, wb);
             for (int i = 0; i < 6; i++)
