@@ -83,15 +83,28 @@ public class AntaresController : MonoBehaviour
 
     void Start()
     {
-        if (disableGravity)
+        // Get root body once and configure it
+        var rootBody = GetComponent<ArticulationBody>();
+        
+        if (disableGravity && rootBody != null)
         {
-            var rootBody = GetComponent<ArticulationBody>();
-            if (rootBody != null)
-                rootBody.useGravity = false;
+            rootBody.useGravity = false;
+        }
 
-            foreach (var body in GetComponentsInChildren<ArticulationBody>())
+        // Enable joint force computation and configure all ArticulationBodies
+        foreach (var body in GetComponentsInChildren<ArticulationBody>())
+        {
+            if (disableGravity)
             {
                 body.useGravity = false;
+            }
+            
+            body.matchAnchors = true;
+            
+            // Ensure the solver can compute forces
+            if (body.isRoot == false && body.jointType == ArticulationJointType.RevoluteJoint)
+            {
+                Debug.Log($"Joint {body.name}: Drive stiffness = {body.xDrive.stiffness}, damping = {body.xDrive.damping}");
             }
         }
 
@@ -163,6 +176,7 @@ public class AntaresController : MonoBehaviour
 
     void Update()
     {
+        // LogJointForcesTorques(); // Moved to FixedUpdate for proper physics timing
         if (controlMode == ControlMode.InverseKinematics)
         {
             if (girandoDerecha || girandoIzquierda)
@@ -424,14 +438,20 @@ public class AntaresController : MonoBehaviour
         }
 
         ////////////////////////
-        /* if (Input.GetKeyDown(KeyCode.E))
+        if (Input.GetKeyDown(KeyCode.E))
         {
             ExportDataToCSV();
-        } */
+        }
         //////////////////////////////
 
         
     }
+
+    // void FixedUpdate()
+    // {
+    //     // Call joint force logging here for proper physics timing
+    //     LogJointForcesTorques();
+    // }
 
     ///////////////////////////////////////////
     void LateUpdate()
@@ -460,26 +480,17 @@ public class AntaresController : MonoBehaviour
             {
                 // Coxa (índices 0-5)
                 var coxaBody = coxas[leg].GetComponent<ArticulationBody>();
-                if (coxaBody != null && coxaBody.jointForce.dofCount > 0)
-                {
-                    jointTorques[torqueIndex] = coxaBody.jointForce[0];
-                }
+                jointTorques[torqueIndex] = EstimateJointTorque(coxaBody);
                 torqueIndex++;
 
                 // Femur (índices 6-11)
                 var femurBody = femurs[leg].GetComponent<ArticulationBody>();
-                if (femurBody != null && femurBody.jointForce.dofCount > 0)
-                {
-                    jointTorques[torqueIndex] = femurBody.jointForce[0];
-                }
+                jointTorques[torqueIndex] = EstimateJointTorque(femurBody);
                 torqueIndex++;
 
                 // Tibia (índices 12-17)
                 var tibiaBody = tibias[leg].GetComponent<ArticulationBody>();
-                if (tibiaBody != null && tibiaBody.jointForce.dofCount > 0)
-                {
-                    jointTorques[torqueIndex] = tibiaBody.jointForce[0];
-                }
+                jointTorques[torqueIndex] = EstimateJointTorque(tibiaBody);
                 torqueIndex++;
             }
             
@@ -558,104 +569,82 @@ public class AntaresController : MonoBehaviour
     // Method to get joint forces and torques
     public void LogJointForcesTorques()
     {
-        for (int i = 0; i < 6; i++)
+        // Only log occasionally to avoid spam
+        if (Time.fixedTime % 1.0f < Time.fixedDeltaTime)  // Log every second
         {
-            // Coxa joint
-            var coxaBody = coxas[i].GetComponent<ArticulationBody>();
-            if (coxaBody != null)
+            for (int i = 0; i < 6; i++)
             {
-                var coxaJointForce = coxaBody.jointForce;
-                string coxaForceStr = "Joint Forces: ";
-                for (int dof = 0; dof < coxaJointForce.dofCount; dof++)
+                // Coxa joint
+                var coxaBody = coxas[i].GetComponent<ArticulationBody>();
+                if (coxaBody != null)
                 {
-                    coxaForceStr += $"DOF{dof}: {coxaJointForce[dof]:F2} ";
-                }
+                    var coxaJointForce = coxaBody.jointForce;
+                    string coxaForceStr = $"Joint Forces (DOF Count: {coxaJointForce.dofCount}): ";
+                    for (int dof = 0; dof < coxaJointForce.dofCount; dof++)
+                    {
+                        coxaForceStr += $"DOF{dof}: {coxaJointForce[dof]:F2} ";
+                    }
+                    
+                    // Also log current drive state for comparison
+                    var drive = coxaBody.xDrive;
+                    coxaForceStr += $"| Target: {drive.target:F2}, Current: {coxaBody.jointPosition[0]:F2}, Vel: {coxaBody.jointVelocity[0]:F2}";
 
-                Debug.Log($"Leg {i} Coxa - {coxaForceStr}");
+                    Debug.Log($"Leg {i} Coxa - {coxaForceStr}");
             }
 
-            // Femur joint
-            var femurBody = femurs[i].GetComponent<ArticulationBody>();
-            if (femurBody != null)
-            {
-                var femurJointForce = femurBody.jointForce;
-                string femurForceStr = "Joint Forces: ";
-                for (int dof = 0; dof < femurJointForce.dofCount; dof++)
+                // Femur joint
+                var femurBody = femurs[i].GetComponent<ArticulationBody>();
+                if (femurBody != null)
                 {
-                    femurForceStr += $"DOF{dof}: {femurJointForce[dof]:F2} ";
+                    var femurJointForce = femurBody.jointForce;
+                    string femurForceStr = $"Joint Forces (DOF Count: {femurJointForce.dofCount}): ";
+                    for (int dof = 0; dof < femurJointForce.dofCount; dof++)
+                    {
+                        femurForceStr += $"DOF{dof}: {femurJointForce[dof]:F2} ";
+                    }
+                    
+                    var drive = femurBody.xDrive;
+                    femurForceStr += $"| Target: {drive.target:F2}, Current: {femurBody.jointPosition[0]:F2}, Vel: {femurBody.jointVelocity[0]:F2}";
+
+                    Debug.Log($"Leg {i} Femur - {femurForceStr}");
                 }
 
-                Debug.Log($"Leg {i} Femur - {femurForceStr}");
-            }
-
-            // Tibia joint
-            var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
-            if (tibiaBody != null)
-            {
-                var tibiaJointForce = tibiaBody.jointForce;
-                string tibiaForceStr = "Joint Forces: ";
-                for (int dof = 0; dof < tibiaJointForce.dofCount; dof++)
+                // Tibia joint
+                var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
+                if (tibiaBody != null)
                 {
-                    tibiaForceStr += $"DOF{dof}: {tibiaJointForce[dof]:F2} ";
-                }
+                    var tibiaJointForce = tibiaBody.jointForce;
+                    string tibiaForceStr = $"Joint Forces (DOF Count: {tibiaJointForce.dofCount}): ";
+                    for (int dof = 0; dof < tibiaJointForce.dofCount; dof++)
+                    {
+                        tibiaForceStr += $"DOF{dof}: {tibiaJointForce[dof]:F2} ";
+                    }
+                    
+                    var drive = tibiaBody.xDrive;
+                    tibiaForceStr += $"| Target: {drive.target:F2}, Current: {tibiaBody.jointPosition[0]:F2}, Vel: {tibiaBody.jointVelocity[0]:F2}";
 
-                Debug.Log($"Leg {i} Tibia - {tibiaForceStr}");
+                    Debug.Log($"Leg {i} Tibia - {tibiaForceStr}");
+                }
             }
         }
     }
 
-    // Method to get total joint load for a specific leg
-    public float GetLegTotalForce(int legIndex)
+    
+    public float EstimateJointTorque(ArticulationBody joint)
     {
-        if (legIndex < 0 || legIndex >= 6) return 0f;
-
-        float totalForce = 0f;
-
-        var coxaBody = coxas[legIndex].GetComponent<ArticulationBody>();
-        if (coxaBody != null)
-        {
-            var jointForce = coxaBody.jointForce;
-            for (int dof = 0; dof < jointForce.dofCount; dof++)
-            {
-                totalForce += Mathf.Abs(jointForce[dof]);
-            }
-        }
-
-        var femurBody = femurs[legIndex].GetComponent<ArticulationBody>();
-        if (femurBody != null)
-        {
-            var jointForce = femurBody.jointForce;
-            for (int dof = 0; dof < jointForce.dofCount; dof++)
-            {
-                totalForce += Mathf.Abs(jointForce[dof]);
-            }
-        }
-
-        var tibiaBody = tibias[legIndex].GetComponent<ArticulationBody>();
-        if (tibiaBody != null)
-        {
-            var jointForce = tibiaBody.jointForce;
-            for (int dof = 0; dof < jointForce.dofCount; dof++)
-            {
-                totalForce += Mathf.Abs(jointForce[dof]);
-            }
-        }
-
-        return totalForce;
-    }
-
-    // Method to get joint torque for a specific joint
-    public float GetJointTorque(ArticulationBody joint)
-    {
-        if (joint == null) return 0f;
-
-        var jointForce = joint.jointForce;
-        if (jointForce.dofCount > 0)
-        {
-            // For revolute joints, there's typically 1 DOF representing torque
-            return jointForce[0];
-        }
-        return 0f;
+        if (joint == null || joint.dofCount == 0) return 0f;
+        
+        var drive = joint.xDrive;
+        float positionError = drive.target - joint.jointPosition[0];
+        float velocityError = drive.targetVelocity - joint.jointVelocity[0];
+        float jointAcceleration = joint.jointAcceleration[0];
+        
+        // Estimate torque using PD control + inertial effects
+        float estimatedTorque = drive.stiffness * positionError + 
+                               drive.damping * velocityError + 
+                               joint.mass * jointAcceleration; // Simplified inertial term
+        
+        return estimatedTorque;
     }
     private void OnR2Pressed(InputAction.CallbackContext ctx)
     {
@@ -707,6 +696,7 @@ public class AntaresController : MonoBehaviour
     ////////////////////////////////
     void ExportDataToCSV()
     {
+        Debug.Log("Exporting data to CSV");
         string path = Application.dataPath + "/HexapodMetrics.csv";
         StringBuilder csvContent = new StringBuilder();
 
