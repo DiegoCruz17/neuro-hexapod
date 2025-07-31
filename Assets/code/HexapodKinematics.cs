@@ -24,13 +24,13 @@ public static class HexapodKinematics
         float r = Mathf.Sqrt(x_local * x_local + z_local * z_local);
         float D = ((r * r) - (L1 * L1) - (L2 * L2)) / (2 * L1 * L2);
         D = Mathf.Clamp(D, -1f, 1f);
-
+/*
         Debug.Log($"Rz Matrix:\n" +
           $"| {Rz.m00:F2} {Rz.m01:F2} {Rz.m02:F2} {Rz.m03:F2} |\n" +
           $"| {Rz.m10:F2} {Rz.m11:F2} {Rz.m12:F2} {Rz.m13:F2} |\n" +
           $"| {Rz.m20:F2} {Rz.m21:F2} {Rz.m22:F2} {Rz.m23:F2} |\n" +
           $"| {Rz.m30:F2} {Rz.m31:F2} {Rz.m32:F2} {Rz.m33:F2} |");
-
+*/
 
         //Debug.Log($"Kinematic invs Angles -> local_1: {local.x:F2}, z_local: {z_local:F2}, L1: {L1:F2}");
 
