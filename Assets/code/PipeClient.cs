@@ -29,7 +29,7 @@ public class PipeClient : MonoBehaviour
             
             pipeClient.Connect(connectionTimeout);
             
-            if (debugMode) Debug.Log("Conectado al pipe.");
+            if (debugMode) Debug.Log("Conectado al pipe");
 
             writer = new StreamWriter(pipeClient, Encoding.UTF8) { AutoFlush = true };
             isConnected = true;
