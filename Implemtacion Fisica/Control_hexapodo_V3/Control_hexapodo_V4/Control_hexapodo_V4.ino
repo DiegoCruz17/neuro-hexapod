@@ -27,12 +27,12 @@ RangosArticulacion rangosExtras = {0, 180}; // Para servos de cola y tenazas
 
 // Configuración de canales para cada pata [q1, q2, q3]
 int pataCanales[6][3] = {
-  {13, 14, 15},     // FR (Frontal Derecha) - Driver 1 
-  {6, 5, 4},     // MR (Media Derecha)   - Driver 1
-  {2, 1, 0},  // RR (Trasera Derecha) - Driver 1 
-  {2, 3, 1},  // FL (Frontal Izq)     - Driver 2 
-  {6, 5, 4},     // ML (Media Izq)       - Driver 2
-  {14, 13, 15}    // RL (Trasera Izq)     - Driver 2
+  {2, 1, 0},   // FR (Frontal Derecha) - Driver 1 
+  {6, 5, 4},      // MR (Media Derecha)   - Driver 1
+  {13, 14, 15},      // RR (Trasera Derecha) - Driver 1
+  {14, 13, 15},      // FL (Frontal Izq)     - Driver 2 
+  {6, 5, 4},      // ML (Media Izq)       - Driver 2
+  {2, 3, 1}    // RL (Trasera Izq)     - Driver 2
 };
 
 // Drivers para cada pata

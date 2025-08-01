@@ -101,8 +101,17 @@ class PipeToWebSocketBridge:
                                 
                                 # Enviar si hay datos
                                 if message_to_send:
-                                    json_message = json.dumps(message_to_send)
-                                    await websocket.send(json_message)
+                                    angles = message_to_send["angles"]
+
+                                    # Enviar 6 comandos, uno por pata
+                                    for leg_id in range(6):
+                                        q1 = int(angles[leg_id * 3 + 0])
+                                        q2 = int(angles[leg_id * 3 + 1])
+                                        q3 = int(angles[leg_id * 3 + 2])
+                                        command = f"M,{leg_id},{q1},{q2},{q3}"
+                                        await websocket.send(command)
+                                        await asyncio.sleep(0.001)  # pequeña pausa opcional
+
                                     self.angles_sent += 1
                                     self.last_send_time = current_time
                                     
@@ -288,8 +297,17 @@ def simple_version_throttled():
                             
                             # Enviar si hay datos
                             if message_to_send:
-                                json_data = json.dumps(message_to_send)
-                                await websocket.send(json_data)
+                                angles = message_to_send["angles"]
+
+                                # Enviar 6 comandos, uno por pata
+                                for leg_id in range(6):
+                                    q1 = int(angles[leg_id * 3 + 0])
+                                    q2 = int(angles[leg_id * 3 + 1])
+                                    q3 = int(angles[leg_id * 3 + 2])
+                                    command = f"M,{leg_id},{q1},{q2},{q3}"
+                                    await websocket.send(command)
+                                    await asyncio.sleep(0.001)  # opcional: pausa mínima para evitar atasco
+
                                 last_send_time = current_time
                                 print(f"📡 Enviado al ESP32: {len(message_to_send['angles'])} ángulos")
                         
