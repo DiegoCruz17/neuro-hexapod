@@ -428,7 +428,7 @@ public class AntaresController : MonoBehaviour
                 if (dtOffset != 0f)
                 {
                     dtOffset = 0f;
-                    Debug.Log("dtOffset reseteado a 0.3 por estar quieto");
+                    Debug.Log("dtOffset reseteado a 0.3 por estar  quieto");
                 }
             }
             if (dt < 0.05)
