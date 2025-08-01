@@ -9,12 +9,12 @@ public class AntaresController : MonoBehaviour
 {
     public bool disableGravity = false;
 
-    public Transform Cooxa1, Cooxa2, Cooxa3, Cooxa4, Cooxa5, Cooxa6;
-
-    public Transform body;
-    public Transform cameraTarget;
-    public Camera thirdPersonCamera;
-
+    public Transform Cooxa1;
+    public Transform Cooxa2;
+    public Transform Cooxa3;
+    public Transform Cooxa4;
+    public Transform Cooxa5;
+    public Transform Cooxa6;
 
     public float L0 = 86.0f;
     public float L1 = 74.28f;
@@ -80,7 +80,6 @@ public class AntaresController : MonoBehaviour
     private bool hasExportedData = false;
     private float captureDuration = 20f;
 
-    public List<float> jointAngles = new List<float>(18); // 6 patas × 3 articulaciones
 
     void Start()
     {
@@ -177,7 +176,6 @@ public class AntaresController : MonoBehaviour
 
     void Update()
     {
-        jointAngles.Clear(); 
         // LogJointForcesTorques(); // Moved to FixedUpdate for proper physics timing
         if (controlMode == ControlMode.InverseKinematics)
         {
@@ -263,21 +261,17 @@ public class AntaresController : MonoBehaviour
                 }
                 coxaDrive.target = angles.x * angleModifier;
                 coxaBody.xDrive = coxaDrive;
-                jointAngles.Add(coxaDrive.target);
 
                 var femurBody = femurs[i].GetComponent<ArticulationBody>();
                 var femurDrive = femurBody.xDrive;
                 femurDrive.target = angles.y * angleModifier;
                 femurBody.xDrive = femurDrive;
-                jointAngles.Add(femurDrive.target);
 
                 var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
                 var tibiaDrive = tibiaBody.xDrive;
                 tibiaDrive.target = angles.z * angleModifier;
                 tibiaBody.xDrive = tibiaDrive;
-                jointAngles.Add(tibiaDrive.target);
             }
-            FindObjectOfType<PipeClient>()?.SendJointAngles(jointAngles);
             k += 60 * Mathf.PI / 100 * Time.deltaTime;
             if (k > 60 * Mathf.PI) k = 0;
         }
@@ -430,7 +424,7 @@ public class AntaresController : MonoBehaviour
             {
 
                 dt = 0.3f; // resetear dt a 0.3 si no hay movimiento
-
+                
                 if (dtOffset != 0f)
                 {
                     dtOffset = 0f;
