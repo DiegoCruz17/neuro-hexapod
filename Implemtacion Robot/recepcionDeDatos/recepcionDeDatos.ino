@@ -3,8 +3,8 @@
 #include <AsyncTCP.h>
 
 // Credenciales WiFi
-const char* ssid = "FLIA_ORTEGA_M";
-const char* password = "60314014";
+const char* ssid = "CamiloS22";
+const char* password = "camilin314";
 
 // Servidor y WebSocket
 AsyncWebServer server(80);
