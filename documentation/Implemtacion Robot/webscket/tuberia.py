@@ -9,7 +9,7 @@ import time
 PIPE_NAME = r'\\.\pipe\UnityToPython'
 
 class PipeToWebSocketBridge:
-    def __init__(self, esp32_ip="192.168.176.119", esp32_port=80):
+    def __init__(self, esp32_ip="192.168.175.119", esp32_port=80):
         self.esp32_ip = esp32_ip
         self.esp32_port = esp32_port
         self.esp32_url = f"ws://{esp32_ip}:{esp32_port}/ws"
@@ -213,7 +213,7 @@ class PipeToWebSocketBridge:
 # Versión simplificada con control de frecuencia
 def simple_version_throttled():
     """Versión simplificada con control de frecuencia"""
-    ESP32_IP = "192.168.176.119"
+    ESP32_IP = "192.168.175.119"
     ESP32_PORT = 80
     esp32_url = f"ws://{ESP32_IP}:{ESP32_PORT}/ws"
     
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     
     if choice == "1":
         # Crear bridge con frecuencia controlada
-        bridge = PipeToWebSocketBridge(esp32_ip="192.168.176.119", esp32_port=80)
+        bridge = PipeToWebSocketBridge(esp32_ip="192.168.175.119", esp32_port=80)
         
         # 🔧 Opcional: cambiar frecuencia
         print("\nFrecuencias recomendadas:")
