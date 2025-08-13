@@ -324,7 +324,7 @@ public class AntaresController : MonoBehaviour
 
             // Debug opcional
             //Debug.Log($"Input: {moveInput}, D: {d:F2}, Rs: {rs:F2} rad");
-
+            List<float> jointAngles = new List<float>();
             var targets = HexapodTrajectory.CalcularTrayectoria(d, al, n, w, rs, ra, c, k, hb, wb);
             for (int i = 0; i < 6; i++)
             {
@@ -342,17 +342,21 @@ public class AntaresController : MonoBehaviour
                 }
                 coxaDrive.target = angles.x * angleModifier;
                 coxaBody.xDrive = coxaDrive;
+                jointAngles.Add(coxaDrive.target);
 
                 var femurBody = femurs[i].GetComponent<ArticulationBody>();
                 var femurDrive = femurBody.xDrive;
                 femurDrive.target = angles.y * angleModifier;
                 femurBody.xDrive = femurDrive;
+                jointAngles.Add(femurDrive.target);
 
                 var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
                 var tibiaDrive = tibiaBody.xDrive;
                 tibiaDrive.target = angles.z * angleModifier;
                 tibiaBody.xDrive = tibiaDrive;
+                jointAngles.Add(tibiaDrive.target);
             }
+            FindObjectOfType<PipeClient>()?.SendJointAngles(jointAngles);
             k += 60 * Mathf.PI / 100 * Time.deltaTime;
             if (k > 60 * Mathf.PI) k = 0;
         }
@@ -513,7 +517,7 @@ public class AntaresController : MonoBehaviour
                 if (dtOffset != 0f)
                 {
                     dtOffset = 0f;
-                    Debug.Log("dtOffset reseteado a 0.3 por estar quieto");
+                    Debug.Log("dtOffset reseteado a 0.3 por estar  quieto");
                 }
             }
             if (dt < 0.05)
