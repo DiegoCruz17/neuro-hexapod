@@ -50,6 +50,7 @@ public class AntaresController : MonoBehaviour
     private Sensors sensors;
     private HexapodState neuralState = new HexapodState();
     public float dt = 0.01f; // Simulation timestep for neural circuit
+    public float dtManual = 0.6f;  // Editable en el Inspector
 
     public float[] RangoOPQ1_offset = new float[] { 40, 0, -40, -40, 0, 40 };
     public float[] T = new float[] { 90, 130, 90, 90, 130, 90 };
@@ -69,40 +70,49 @@ public class AntaresController : MonoBehaviour
     private List<Vector3> positionHistory = new List<Vector3>();
     private List<Vector3> velocityHistory = new List<Vector3>();
     private List<Vector3> angularVelocityHistory = new List<Vector3>();
-    private List<float[]> jointTorquesHistory = new List<float[]>();
+    private List<float[]> jointTorquesHistory = new List<float[]>(); // <- Aportado por tu amigo
     private float totalDistance = 0f;
     private Vector3 lastPosition;
+
     /// <summary>
-    /// //////////////////////////////////
+    /// Variables para captura de datos
     /// </summary>
     private float dataCaptureStartTime;
     private bool isCapturingData = false;
     private bool hasExportedData = false;
     private float captureDuration = 20f;
 
+    // Variables de estabilización al inicio
+    private float warmupDuration = 2f;
+    private bool warmupComplete = false;
+    private float simulationStartTime;
+
+    // Copias temporales de parámetros del Inspector para restauración post-warmup
+    private float initialGo, initialBk, initialLeft, initialRight, initialSpinL, initialSpinR;
+    private float initialD, initialAl;
+    private bool initialValuesStored = false;
+
 
     void Start()
     {
-        // Get root body once and configure it
+        // Desactivar gravedad si está configurado
         var rootBody = GetComponent<ArticulationBody>();
-        
         if (disableGravity && rootBody != null)
         {
             rootBody.useGravity = false;
         }
 
-        // Enable joint force computation and configure all ArticulationBodies
         foreach (var body in GetComponentsInChildren<ArticulationBody>())
         {
             if (disableGravity)
             {
                 body.useGravity = false;
             }
-            
+
             body.matchAnchors = true;
-            
-            // Ensure the solver can compute forces
-            if (body.isRoot == false && body.jointType == ArticulationJointType.RevoluteJoint)
+
+            // Mostrar configuración de las articulaciones (útil para debug)
+            if (!body.isRoot && body.jointType == ArticulationJointType.RevoluteJoint)
             {
                 Debug.Log($"Joint {body.name}: Drive stiffness = {body.xDrive.stiffness}, damping = {body.xDrive.damping}");
             }
@@ -128,16 +138,22 @@ public class AntaresController : MonoBehaviour
             femurs[i] = coxas[i].GetChild(0);
             tibias[i] = femurs[i].GetChild(0);
         }
+
         sensors = GetComponent<Sensors>();
         previousMode = controlMode;
 
-        // Initialize targetAl to current al value to prevent initial jump
+        // Inicializar valor objetivo de al
         targetAl = al;
-        dataCaptureStartTime = Time.time;
-        isCapturingData = true;
-        hasExportedData = false;
 
+        // Warm-up: evitar captura inmediata de datos
+        simulationStartTime = Time.time;
+        warmupComplete = false;
+
+        // Asegurarse de no comenzar a capturar datos aún
+        isCapturingData = false;
+        dataCaptureStartTime = Time.time;
     }
+
     void OnEnable()
     {
         controls = new ControlPlay();
@@ -176,7 +192,72 @@ public class AntaresController : MonoBehaviour
 
     void Update()
     {
-        // LogJointForcesTorques(); // Moved to FixedUpdate for proper physics timing
+        float elapsedSinceStart = Time.time - simulationStartTime;
+        if (!warmupComplete)
+        {
+            if (!initialValuesStored)
+            {
+                // Guardar parámetros del Inspector
+                if (controlMode == ControlMode.NeuralCircuit)
+                {
+                    initialGo = go;
+                    initialBk = bk;
+                    initialLeft = left;
+                    initialRight = right;
+                    initialSpinL = spinL;
+                    initialSpinR = spinR;
+                }
+                else if (controlMode == ControlMode.InverseKinematics)
+                {
+                    initialD = d;
+                    initialAl = al;
+                }
+                initialValuesStored = true;
+            }
+
+            // Asignar valores de estabilización
+            if (controlMode == ControlMode.NeuralCircuit)
+            {
+                go = 0f;
+                bk = 0f;
+                left = 0f;
+                right = 0f;
+                spinL = 0f;
+                spinR = 0f;
+            }
+            else if (controlMode == ControlMode.InverseKinematics)
+            {
+                d = 1f;
+                al = 0f;
+            }
+
+            // 👇🏻 IMPORTANTE: NO hacer return aquí
+            if (elapsedSinceStart >= warmupDuration)
+            {
+                warmupComplete = true;
+                dataCaptureStartTime = Time.time;
+                isCapturingData = true;
+
+                // Restaurar valores del Inspector
+                if (controlMode == ControlMode.NeuralCircuit)
+                {
+                    go = initialGo;
+                    bk = initialBk;
+                    left = initialLeft;
+                    right = initialRight;
+                    spinL = initialSpinL;
+                    spinR = initialSpinR;
+                }
+                else if (controlMode == ControlMode.InverseKinematics)
+                {
+                    d = initialD;
+                    al = initialAl;
+                }
+
+                Debug.Log("🏁 Warm-up terminado. Restaurados parámetros y comienza captura de datos.");
+            }
+        }
+     
         if (controlMode == ControlMode.InverseKinematics)
         {
             if (girandoDerecha || girandoIzquierda)
@@ -284,12 +365,12 @@ public class AntaresController : MonoBehaviour
             //CONTROL POR MEDIO DEL PS4, HACE PARTE DE LA SEGUNDA VERSION 
 
             // Reseteo inputs
-            /* go = 0f;
-            bk = 0f;
-            left = 0f;
-            right = 0f;
-            spinL = 0f;
-            spinR = 0f; */
+            //go = 0f;
+            //bk = 0f;
+            //left = 0f;
+            //right = 0f;
+            //spinL = 0f;
+            //spinR = 0f; 
 
             // Leer input del analógico
             if (useGamepadControl)
@@ -375,6 +456,10 @@ public class AntaresController : MonoBehaviour
 
                 dt = Mathf.Clamp(dt + dtOffset, 0f, 0.9f);
             }
+            else
+            {
+                dt = dtManual; // Usar el valor manual del Inspector
+            }
 
             for (int j = 0; j < 50; j++)
             {
@@ -442,10 +527,10 @@ public class AntaresController : MonoBehaviour
         }
 
         ////////////////////////
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            ExportDataToCSV();
-        }
+        //if (Input.GetKeyDown(KeyCode.E))
+        //{
+        //    ExportDataToCSV();
+        //} 
         //////////////////////////////
 
         
@@ -479,7 +564,12 @@ public class AntaresController : MonoBehaviour
             // Recolectar torques de las 18 articulaciones (6 patas x 3 articulaciones cada una)
             float[] jointTorques = new float[18];
             int torqueIndex = 0;
-            
+
+            if (positionHistory.Count > 1)
+                totalDistance += Vector3.Distance(currentPosition, lastPosition);
+
+            lastPosition = currentPosition;
+
             for (int leg = 0; leg < 6; leg++)
             {
                 // Coxa (índices 0-5)
@@ -745,12 +835,5 @@ public class AntaresController : MonoBehaviour
     }
     /////////////////////////////////
     
-    void OnApplicationQuit()
-    {
-        ExportDataToCSV();
-    }
 
 }
-
-
-

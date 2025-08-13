@@ -53,6 +53,7 @@ namespace Assets.code
         
         void Start()
         {
+            
             InitializeTestScene();
         }
         
