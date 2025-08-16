@@ -80,6 +80,15 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Saludar"",
+                    ""type"": ""Button"",
+                    ""id"": ""8e176124-73a0-44e1-9566-16b908ed3dda"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Press"",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -148,6 +157,17 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                     ""action"": ""DisminuirDt"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""25138694-2a9b-4f8c-b9df-a45d22cc67b4"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Saludar"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -162,6 +182,7 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         m_Move_Flechas = m_Move.FindAction("Flechas", throwIfNotFound: true);
         m_Move_AumentarDt = m_Move.FindAction("AumentarDt", throwIfNotFound: true);
         m_Move_DisminuirDt = m_Move.FindAction("DisminuirDt", throwIfNotFound: true);
+        m_Move_Saludar = m_Move.FindAction("Saludar", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -227,6 +248,7 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
     private readonly InputAction m_Move_Flechas;
     private readonly InputAction m_Move_AumentarDt;
     private readonly InputAction m_Move_DisminuirDt;
+    private readonly InputAction m_Move_Saludar;
     public struct MoveActions
     {
         private @ControlPlay m_Wrapper;
@@ -237,6 +259,7 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         public InputAction @Flechas => m_Wrapper.m_Move_Flechas;
         public InputAction @AumentarDt => m_Wrapper.m_Move_AumentarDt;
         public InputAction @DisminuirDt => m_Wrapper.m_Move_DisminuirDt;
+        public InputAction @Saludar => m_Wrapper.m_Move_Saludar;
         public InputActionMap Get() { return m_Wrapper.m_Move; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -264,6 +287,9 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                 @DisminuirDt.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnDisminuirDt;
                 @DisminuirDt.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnDisminuirDt;
                 @DisminuirDt.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnDisminuirDt;
+                @Saludar.started -= m_Wrapper.m_MoveActionsCallbackInterface.OnSaludar;
+                @Saludar.performed -= m_Wrapper.m_MoveActionsCallbackInterface.OnSaludar;
+                @Saludar.canceled -= m_Wrapper.m_MoveActionsCallbackInterface.OnSaludar;
             }
             m_Wrapper.m_MoveActionsCallbackInterface = instance;
             if (instance != null)
@@ -286,6 +312,9 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
                 @DisminuirDt.started += instance.OnDisminuirDt;
                 @DisminuirDt.performed += instance.OnDisminuirDt;
                 @DisminuirDt.canceled += instance.OnDisminuirDt;
+                @Saludar.started += instance.OnSaludar;
+                @Saludar.performed += instance.OnSaludar;
+                @Saludar.canceled += instance.OnSaludar;
             }
         }
     }
@@ -298,5 +327,6 @@ public partial class @ControlPlay : IInputActionCollection2, IDisposable
         void OnFlechas(InputAction.CallbackContext context);
         void OnAumentarDt(InputAction.CallbackContext context);
         void OnDisminuirDt(InputAction.CallbackContext context);
+        void OnSaludar(InputAction.CallbackContext context);
     }
 }
