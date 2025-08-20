@@ -210,7 +210,7 @@ public class AntaresController : MonoBehaviour
                     }
                     else
                     {
-                        targetAl = 20f;
+                        targetAl = 35f;
                     }
 
                     rs = angleRad;
