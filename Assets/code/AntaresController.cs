@@ -81,7 +81,7 @@ public class AntaresController : MonoBehaviour
     private float dataCaptureStartTime;
     private bool isCapturingData = false;
     private bool hasExportedData = false;
-    private float captureDuration = 20f;
+    private float captureDuration = 40f;
 
     // Variables de estabilización al inicio
     private float warmupDuration = 2f;
@@ -299,7 +299,7 @@ public class AntaresController : MonoBehaviour
                     }
                     else
                     {
-                        targetAl = 20f;
+                        targetAl = 35f;
                     }
 
                     rs = angleRad;
@@ -773,57 +773,84 @@ public class AntaresController : MonoBehaviour
         }
     }
     private IEnumerator StartGreetingRoutine()
+{
+    isGreeting = true;
+    Debug.Log("Iniciando rutina de saludo...");
+
+    // Paso 1: detener marcha
+    if (controlMode == ControlMode.InverseKinematics)
     {
-        isGreeting = true;
-        Debug.Log("🤖 Iniciando rutina de saludo...");
-
-        // Paso 1: detener marcha
-        if (controlMode == ControlMode.InverseKinematics)
-        {
-            d = 0f; al = 0f;
-        }
-        else if (controlMode == ControlMode.NeuralCircuit)
-        {
-            go = bk = left = right = spinL = spinR = 0f;
-        }
-
-        // Paso 2: mover TODAS las patas a la pose estable
-        yield return StartCoroutine(MoveToRestPose(1.5f));
-
-        // Paso 3: esperar en reposo
-        yield return new WaitForSeconds(0.5f);
-
-        // Paso 4: mover una pata a la pose de saludo
-        int legIndex = 0; 
-        var coxaBody = coxas[legIndex].GetComponent<ArticulationBody>();
-        var femurBody = femurs[legIndex].GetComponent<ArticulationBody>();
-        var tibiaBody = tibias[legIndex].GetComponent<ArticulationBody>();
-
-        // fijar femur y tibia en la pose deseada
-        var femurDrive = femurBody.xDrive;
-        femurDrive.target = 0f;
-        femurBody.xDrive = femurDrive;
-
-        var tibiaDrive = tibiaBody.xDrive;
-        tibiaDrive.target = 90f;
-        tibiaBody.xDrive = tibiaDrive;
-
-        for (int i = 0; i < 3; i++) // tres saludos
-        {
-            // Coxa adelante (-10)
-            yield return StartCoroutine(MoveJointSmooth(coxaBody, -10f, 0.5f));
-
-            // Coxa atrás (-50)
-            yield return StartCoroutine(MoveJointSmooth(coxaBody, -50f, 0.5f));
-        }
-
-        // Paso 5: volver a reposo otra vez (por si quedó desajustada)
-        yield return StartCoroutine(MoveToRestPose(1f));
-
-        Debug.Log("✅ Saludo completado.");
-        
-        isGreeting = false;
+        d = 0f; al = 0f;
     }
+    else if (controlMode == ControlMode.NeuralCircuit)
+    {
+        go = bk = left = right = spinL = spinR = 0f;
+    }
+
+    // Paso 2: mover TODAS las patas a la pose estable
+    yield return StartCoroutine(MoveToRestPose(1.5f));
+
+    // Paso 3: esperar en reposo
+    yield return new WaitForSeconds(0.5f);
+
+    // Paso 4: mover una pata a la pose de saludo
+    int legIndex = 0; 
+    var coxaBody = coxas[legIndex].GetComponent<ArticulationBody>();
+    var femurBody = femurs[legIndex].GetComponent<ArticulationBody>();
+    var tibiaBody = tibias[legIndex].GetComponent<ArticulationBody>();
+
+    // fijar femur y tibia en la pose deseada
+    var femurDrive = femurBody.xDrive;
+    femurDrive.target = 0f;
+    femurBody.xDrive = femurDrive;
+
+    var tibiaDrive = tibiaBody.xDrive;
+    tibiaDrive.target = 90f;
+    tibiaBody.xDrive = tibiaDrive;
+
+    for (int i = 0; i < 3; i++) // tres saludos
+    {
+        // Coxa adelante (-10)
+        yield return StartCoroutine(MoveJointSmooth(coxaBody, -10f, 0.5f));
+        SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+
+        // Coxa atrás (-50)
+        yield return StartCoroutine(MoveJointSmooth(coxaBody, -50f, 0.5f));
+        SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+    }
+
+    // Paso 5: volver a reposo otra vez (por si quedó desajustada)
+    yield return StartCoroutine(MoveToRestPose(1f));
+
+    SendAllJointAngles(); // 🔴 Enviar pose final también
+
+    Debug.Log("✅ Saludo completado.");
+    isGreeting = false;
+}
+
+// Función auxiliar para recolectar y mandar todos los ángulos
+private void SendAllJointAngles()
+{
+    List<float> jointAngles = new List<float>();
+
+    for (int i = 0; i < 6; i++)
+    {
+        var coxaBody = coxas[i].GetComponent<ArticulationBody>();
+        jointAngles.Add(coxaBody.xDrive.target);
+
+        var femurBody = femurs[i].GetComponent<ArticulationBody>();
+        jointAngles.Add(femurBody.xDrive.target);
+
+        var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
+        jointAngles.Add(tibiaBody.xDrive.target);
+    }
+
+    Debug.Log("📡 Enviando ángulos: " + string.Join(",", jointAngles)); // 👈 verificar en consola Unity
+
+    FindObjectOfType<PipeClient>()?.SendJointAngles(jointAngles);
+}
+
+
     private IEnumerator MoveJointSmooth(ArticulationBody joint, float targetAngle, float duration)
     {
         var drive = joint.xDrive;
@@ -853,11 +880,16 @@ public class AntaresController : MonoBehaviour
         float[] startFemur = new float[6];
         float[] startTibia = new float[6];
 
+        
+
         for (int i = 0; i < 6; i++)
         {
             startCoxa[i] = coxas[i].GetComponent<ArticulationBody>().xDrive.target;
+            
             startFemur[i] = femurs[i].GetComponent<ArticulationBody>().xDrive.target;
+            
             startTibia[i] = tibias[i].GetComponent<ArticulationBody>().xDrive.target;
+            
         }
 
         while (elapsed < duration)
@@ -870,15 +902,18 @@ public class AntaresController : MonoBehaviour
                 var coxaDrive = coxas[i].GetComponent<ArticulationBody>().xDrive;
                 coxaDrive.target = Mathf.Lerp(startCoxa[i], restCoxa[i], t);
                 coxas[i].GetComponent<ArticulationBody>().xDrive = coxaDrive;
-
+                
                 var femurDrive = femurs[i].GetComponent<ArticulationBody>().xDrive;
                 femurDrive.target = Mathf.Lerp(startFemur[i], restFemur[i], t);
                 femurs[i].GetComponent<ArticulationBody>().xDrive = femurDrive;
-
+                
                 var tibiaDrive = tibias[i].GetComponent<ArticulationBody>().xDrive;
                 tibiaDrive.target = Mathf.Lerp(startTibia[i], restTibia[i], t);
                 tibias[i].GetComponent<ArticulationBody>().xDrive = tibiaDrive;
+                
             }
+            
+
 
             yield return null;
         }
