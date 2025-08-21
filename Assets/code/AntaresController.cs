@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using System.IO;
 using System.Text;
 
+
 public class AntaresController : MonoBehaviour
 {
     public bool disableGravity = false;
@@ -50,6 +51,7 @@ public class AntaresController : MonoBehaviour
     private Sensors sensors;
     private HexapodState neuralState = new HexapodState();
     public float dt = 0.01f; // Simulation timestep for neural circuit
+    public float dtManual = 0.6f;  // Editable en el Inspector
 
     public float[] RangoOPQ1_offset = new float[] { 40, 0, -40, -40, 0, 40 };
     public float[] T = new float[] { 90, 130, 90, 90, 130, 90 };
@@ -69,40 +71,53 @@ public class AntaresController : MonoBehaviour
     private List<Vector3> positionHistory = new List<Vector3>();
     private List<Vector3> velocityHistory = new List<Vector3>();
     private List<Vector3> angularVelocityHistory = new List<Vector3>();
-    private List<float[]> jointTorquesHistory = new List<float[]>();
+    private List<float[]> jointTorquesHistory = new List<float[]>(); // <- Aportado por tu amigo
     private float totalDistance = 0f;
     private Vector3 lastPosition;
+
     /// <summary>
-    /// //////////////////////////////////
+    /// Variables para captura de datos
     /// </summary>
     private float dataCaptureStartTime;
     private bool isCapturingData = false;
     private bool hasExportedData = false;
-    private float captureDuration = 20f;
+    private float captureDuration = 40f;
 
+    // Variables de estabilización al inicio
+    private float warmupDuration = 2f;
+    private bool warmupComplete = false;
+    private float simulationStartTime;
+
+    // Copias temporales de parámetros del Inspector para restauración post-warmup
+    private float initialGo, initialBk, initialLeft, initialRight, initialSpinL, initialSpinR;
+    private float initialD, initialAl;
+    private bool initialValuesStored = false;
+    private bool isGreeting = false;
+    // Angulos de pose estable (reposo)
+    private float[] restCoxa = { -33f, 0f, 33f, 33f, 0f, -33f };
+    private float[] restFemur = { 0f, 0f, 0f, 0f, 0f, 0f };
+    private float[] restTibia = { -90f, -90f, -90f, 90f, 90f, 90f };
 
     void Start()
     {
-        // Get root body once and configure it
+        // Desactivar gravedad si está configurado
         var rootBody = GetComponent<ArticulationBody>();
-        
         if (disableGravity && rootBody != null)
         {
             rootBody.useGravity = false;
         }
 
-        // Enable joint force computation and configure all ArticulationBodies
         foreach (var body in GetComponentsInChildren<ArticulationBody>())
         {
             if (disableGravity)
             {
                 body.useGravity = false;
             }
-            
+
             body.matchAnchors = true;
-            
-            // Ensure the solver can compute forces
-            if (body.isRoot == false && body.jointType == ArticulationJointType.RevoluteJoint)
+
+            // Mostrar configuración de las articulaciones (útil para debug)
+            if (!body.isRoot && body.jointType == ArticulationJointType.RevoluteJoint)
             {
                 Debug.Log($"Joint {body.name}: Drive stiffness = {body.xDrive.stiffness}, damping = {body.xDrive.damping}");
             }
@@ -128,16 +143,22 @@ public class AntaresController : MonoBehaviour
             femurs[i] = coxas[i].GetChild(0);
             tibias[i] = femurs[i].GetChild(0);
         }
+
         sensors = GetComponent<Sensors>();
         previousMode = controlMode;
 
-        // Initialize targetAl to current al value to prevent initial jump
+        // Inicializar valor objetivo de al
         targetAl = al;
-        dataCaptureStartTime = Time.time;
-        isCapturingData = true;
-        hasExportedData = false;
 
+        // Warm-up: evitar captura inmediata de datos
+        simulationStartTime = Time.time;
+        warmupComplete = false;
+
+        // Asegurarse de no comenzar a capturar datos aún
+        isCapturingData = false;
+        dataCaptureStartTime = Time.time;
     }
+
     void OnEnable()
     {
         controls = new ControlPlay();
@@ -152,7 +173,7 @@ public class AntaresController : MonoBehaviour
         controls.Move.Flechas.canceled += OnFlechasCanceled;
         controls.Move.AumentarDt.started += OnR2Pressed;
         controls.Move.DisminuirDt.started += OnL2Pressed;
-
+        controls.Move.Saludar.started += OnSaludarPressed;
 
     }
 
@@ -170,13 +191,81 @@ public class AntaresController : MonoBehaviour
         controls.Move.Flechas.canceled -= OnFlechasCanceled;
         controls.Move.AumentarDt.started -= OnR2Pressed;
         controls.Move.DisminuirDt.started -= OnL2Pressed;
-
+        controls.Move.Saludar.started -= OnSaludarPressed;
         controls.Disable();
     }
 
     void Update()
     {
-        // LogJointForcesTorques(); // Moved to FixedUpdate for proper physics timing
+        float elapsedSinceStart = Time.time - simulationStartTime;
+        if (!warmupComplete)
+        {
+            if (!initialValuesStored)
+            {
+                // Guardar parámetros del Inspector
+                if (controlMode == ControlMode.NeuralCircuit)
+                {
+                    initialGo = go;
+                    initialBk = bk;
+                    initialLeft = left;
+                    initialRight = right;
+                    initialSpinL = spinL;
+                    initialSpinR = spinR;
+                }
+                else if (controlMode == ControlMode.InverseKinematics)
+                {
+                    initialD = d;
+                    initialAl = al;
+                }
+                initialValuesStored = true;
+            }
+
+            // Asignar valores de estabilización
+            if (controlMode == ControlMode.NeuralCircuit)
+            {
+                go = 0f;
+                bk = 0f;
+                left = 0f;
+                right = 0f;
+                spinL = 0f;
+                spinR = 0f;
+            }
+            else if (controlMode == ControlMode.InverseKinematics)
+            {
+                d = 1f;
+                al = 0f;
+            }
+
+            
+            if (elapsedSinceStart >= warmupDuration)
+            {
+                warmupComplete = true;
+                dataCaptureStartTime = Time.time;
+                isCapturingData = true;
+
+                // Restaurar valores del Inspector
+                if (controlMode == ControlMode.NeuralCircuit)
+                {
+                    go = initialGo;
+                    bk = initialBk;
+                    left = initialLeft;
+                    right = initialRight;
+                    spinL = initialSpinL;
+                    spinR = initialSpinR;
+                }
+                else if (controlMode == ControlMode.InverseKinematics)
+                {
+                    d = initialD;
+                    al = initialAl;
+                }
+
+                Debug.Log("🏁 Warm-up terminado. Restaurados parámetros y comienza captura de datos.");
+            }
+        }
+        if (isGreeting)
+        {
+            return; // No actualizar locomoción mientras saluda
+        }
         if (controlMode == ControlMode.InverseKinematics)
         {
             if (girandoDerecha || girandoIzquierda)
@@ -284,12 +373,12 @@ public class AntaresController : MonoBehaviour
             //CONTROL POR MEDIO DEL PS4, HACE PARTE DE LA SEGUNDA VERSION 
 
             // Reseteo inputs
-            /* go = 0f;
-            bk = 0f;
-            left = 0f;
-            right = 0f;
-            spinL = 0f;
-            spinR = 0f; */
+            //go = 0f;
+            //bk = 0f;
+            //left = 0f;
+            //right = 0f;
+            //spinL = 0f;
+            //spinR = 0f; 
 
             // Leer input del analógico
             if (useGamepadControl)
@@ -375,6 +464,10 @@ public class AntaresController : MonoBehaviour
 
                 dt = Mathf.Clamp(dt + dtOffset, 0f, 0.9f);
             }
+            else
+            {
+                dt = dtManual; // Usar el valor manual del Inspector
+            }
 
             for (int j = 0; j < 50; j++)
             {
@@ -442,10 +535,10 @@ public class AntaresController : MonoBehaviour
         }
 
         ////////////////////////
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            ExportDataToCSV();
-        }
+        //if (Input.GetKeyDown(KeyCode.E))
+        //{
+        //    ExportDataToCSV();
+        //} 
         //////////////////////////////
 
         
@@ -479,7 +572,12 @@ public class AntaresController : MonoBehaviour
             // Recolectar torques de las 18 articulaciones (6 patas x 3 articulaciones cada una)
             float[] jointTorques = new float[18];
             int torqueIndex = 0;
-            
+
+            if (positionHistory.Count > 1)
+                totalDistance += Vector3.Distance(currentPosition, lastPosition);
+
+            lastPosition = currentPosition;
+
             for (int leg = 0; leg < 6; leg++)
             {
                 // Coxa (índices 0-5)
@@ -667,6 +765,160 @@ public class AntaresController : MonoBehaviour
             Debug.Log($"[L2] dtOffset disminuido a {dtOffset:F2}");
         }
     }
+    private void OnSaludarPressed(InputAction.CallbackContext ctx)
+    {
+        if (!isGreeting) // Evitar repetir si ya está saludando
+        {
+            StartCoroutine(StartGreetingRoutine());
+        }
+    }
+    private IEnumerator StartGreetingRoutine()
+{
+    isGreeting = true;
+    Debug.Log("Iniciando rutina de saludo...");
+
+    // Paso 1: detener marcha
+    if (controlMode == ControlMode.InverseKinematics)
+    {
+        d = 0f; al = 0f;
+    }
+    else if (controlMode == ControlMode.NeuralCircuit)
+    {
+        go = bk = left = right = spinL = spinR = 0f;
+    }
+
+    // Paso 2: mover TODAS las patas a la pose estable
+    yield return StartCoroutine(MoveToRestPose(1.5f));
+
+    // Paso 3: esperar en reposo
+    yield return new WaitForSeconds(0.5f);
+
+    // Paso 4: mover una pata a la pose de saludo
+    int legIndex = 0; 
+    var coxaBody = coxas[legIndex].GetComponent<ArticulationBody>();
+    var femurBody = femurs[legIndex].GetComponent<ArticulationBody>();
+    var tibiaBody = tibias[legIndex].GetComponent<ArticulationBody>();
+
+    // fijar femur y tibia en la pose deseada
+    var femurDrive = femurBody.xDrive;
+    femurDrive.target = 0f;
+    femurBody.xDrive = femurDrive;
+
+    var tibiaDrive = tibiaBody.xDrive;
+    tibiaDrive.target = 90f;
+    tibiaBody.xDrive = tibiaDrive;
+
+    for (int i = 0; i < 3; i++) // tres saludos
+    {
+        // Coxa adelante (-10)
+        yield return StartCoroutine(MoveJointSmooth(coxaBody, -10f, 0.5f));
+        SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+
+        // Coxa atrás (-50)
+        yield return StartCoroutine(MoveJointSmooth(coxaBody, -50f, 0.5f));
+        SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+    }
+
+    // Paso 5: volver a reposo otra vez (por si quedó desajustada)
+    yield return StartCoroutine(MoveToRestPose(1f));
+
+    SendAllJointAngles(); // 🔴 Enviar pose final también
+
+    Debug.Log("✅ Saludo completado.");
+    isGreeting = false;
+}
+
+// Función auxiliar para recolectar y mandar todos los ángulos
+private void SendAllJointAngles()
+{
+    List<float> jointAngles = new List<float>();
+
+    for (int i = 0; i < 6; i++)
+    {
+        var coxaBody = coxas[i].GetComponent<ArticulationBody>();
+        jointAngles.Add(coxaBody.xDrive.target);
+
+        var femurBody = femurs[i].GetComponent<ArticulationBody>();
+        jointAngles.Add(femurBody.xDrive.target);
+
+        var tibiaBody = tibias[i].GetComponent<ArticulationBody>();
+        jointAngles.Add(tibiaBody.xDrive.target);
+    }
+
+    Debug.Log("📡 Enviando ángulos: " + string.Join(",", jointAngles)); // 👈 verificar en consola Unity
+
+    FindObjectOfType<PipeClient>()?.SendJointAngles(jointAngles);
+}
+
+
+    private IEnumerator MoveJointSmooth(ArticulationBody joint, float targetAngle, float duration)
+    {
+        var drive = joint.xDrive;
+        float start = drive.target;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            drive.target = Mathf.Lerp(start, targetAngle, t);
+            joint.xDrive = drive;
+            yield return null;
+        }
+
+        // asegurar que termine exactamente en target
+        drive.target = targetAngle;
+        joint.xDrive = drive;
+    }
+
+    private IEnumerator MoveToRestPose(float duration = 1.5f)
+    {
+        float elapsed = 0f;
+
+        // Guardar poses iniciales
+        float[] startCoxa = new float[6];
+        float[] startFemur = new float[6];
+        float[] startTibia = new float[6];
+
+        
+
+        for (int i = 0; i < 6; i++)
+        {
+            startCoxa[i] = coxas[i].GetComponent<ArticulationBody>().xDrive.target;
+            
+            startFemur[i] = femurs[i].GetComponent<ArticulationBody>().xDrive.target;
+            
+            startTibia[i] = tibias[i].GetComponent<ArticulationBody>().xDrive.target;
+            
+        }
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+
+            for (int i = 0; i < 6; i++)
+            {
+                var coxaDrive = coxas[i].GetComponent<ArticulationBody>().xDrive;
+                coxaDrive.target = Mathf.Lerp(startCoxa[i], restCoxa[i], t);
+                coxas[i].GetComponent<ArticulationBody>().xDrive = coxaDrive;
+                
+                var femurDrive = femurs[i].GetComponent<ArticulationBody>().xDrive;
+                femurDrive.target = Mathf.Lerp(startFemur[i], restFemur[i], t);
+                femurs[i].GetComponent<ArticulationBody>().xDrive = femurDrive;
+                
+                var tibiaDrive = tibias[i].GetComponent<ArticulationBody>().xDrive;
+                tibiaDrive.target = Mathf.Lerp(startTibia[i], restTibia[i], t);
+                tibias[i].GetComponent<ArticulationBody>().xDrive = tibiaDrive;
+                
+            }
+            
+
+
+            yield return null;
+        }
+    }
+    
 
     private bool HexapodIsMoving()
     {
@@ -745,12 +997,5 @@ public class AntaresController : MonoBehaviour
     }
     /////////////////////////////////
     
-    void OnApplicationQuit()
-    {
-        ExportDataToCSV();
-    }
 
 }
-
-
-

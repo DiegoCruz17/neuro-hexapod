@@ -21,7 +21,7 @@ namespace Assets.code
         public float initialRoughness = 1f;
         
         [Tooltip("Initial terrain amplitude")]
-        public float initialAmplitude = 0.5f;
+        public float initialAmplitude = 0.7f;
         
         [Header("Fixed Settings")]
         [Tooltip("Fixed terrain size")]
