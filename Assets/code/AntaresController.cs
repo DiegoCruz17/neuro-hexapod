@@ -299,7 +299,7 @@ public class AntaresController : MonoBehaviour
                     }
                     else
                     {
-                        targetAl = 35f;
+                        targetAl = 30f;
                     }
 
                     rs = angleRad;
@@ -788,7 +788,7 @@ public class AntaresController : MonoBehaviour
     }
 
     // Paso 2: mover TODAS las patas a la pose estable
-    yield return StartCoroutine(MoveToRestPose(1.5f));
+    yield return StartCoroutine(MoveToRestPose(0.5f));
 
     // Paso 3: esperar en reposo
     yield return new WaitForSeconds(0.5f);
@@ -810,13 +810,18 @@ public class AntaresController : MonoBehaviour
 
     for (int i = 0; i < 3; i++) // tres saludos
     {
-        // Coxa adelante (-10)
-        yield return StartCoroutine(MoveJointSmooth(coxaBody, -10f, 0.5f));
-        SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
-
-        // Coxa atrás (-50)
-        yield return StartCoroutine(MoveJointSmooth(coxaBody, -50f, 0.5f));
-        SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+            for (int k = -5; k > -30; k--)
+            {
+                // Coxa adelante (-10)
+                yield return StartCoroutine(MoveJointSmooth(coxaBody, 2*k, 0.05f));
+                SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+            }
+            for (int k = -30; k < -5; k++)
+            {
+                // Coxa atrás (-50)
+                yield return StartCoroutine(MoveJointSmooth(coxaBody, 2*k, 0.05f));
+                SendAllJointAngles(); // 🔴 Enviar al pipe después del movimiento
+            }
     }
 
     // Paso 5: volver a reposo otra vez (por si quedó desajustada)
@@ -871,7 +876,7 @@ private void SendAllJointAngles()
         joint.xDrive = drive;
     }
 
-    private IEnumerator MoveToRestPose(float duration = 1.5f)
+    private IEnumerator MoveToRestPose(float duration = 0.5f)
     {
         float elapsed = 0f;
 
